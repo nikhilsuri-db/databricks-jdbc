@@ -98,7 +98,7 @@ public class TelemetryCollectorTest {
 
     assertNotNull(details);
     assertEquals(statementId, details.getStatementId());
-    assertSame(details,handler.getTelemetryDetails(statementId));
+    assertSame(details, handler.getTelemetryDetails(statementId));
   }
 
   @Test
