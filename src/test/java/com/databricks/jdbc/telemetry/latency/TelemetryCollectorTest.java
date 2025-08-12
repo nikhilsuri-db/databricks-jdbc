@@ -83,4 +83,32 @@ public class TelemetryCollectorTest {
             || operationType == OperationType.DELETE_SESSION;
     assertEquals(expected, handler.isCloseOperation(operationType));
   }
+
+  @Test
+  void testReturnsNullIfStatementIdIsNull() {
+    assertNull(handler.getOrCreateTelemetryDetails(null));
+  }
+
+  @Test
+  void testCreatesNewTelemetryDetailsIfAbsent() {
+    String statementId = TEST_STATEMENT_ID;
+    assertNull(handler.getTelemetryDetails(statementId));
+
+    StatementTelemetryDetails details = handler.getOrCreateTelemetryDetails(statementId);
+
+    assertNotNull(details);
+    assertEquals(statementId, details.getStatementId());
+    assertSame(details,handler.getTelemetryDetails(statementId));
+  }
+
+  @Test
+  void testReturnsExistingTelemetryDetailsIfPresent() {
+    String statementId = TEST_STATEMENT_ID;
+    handler.recordGetOperationStatus(statementId, 1000L);
+    assertNotNull(handler.getTelemetryDetails(statementId));
+    StatementTelemetryDetails existing = handler.getTelemetryDetails(statementId);
+    StatementTelemetryDetails result = handler.getOrCreateTelemetryDetails(statementId);
+    assertSame(existing, result);
+    assertEquals(statementId, result.getStatementId());
+  }
 }

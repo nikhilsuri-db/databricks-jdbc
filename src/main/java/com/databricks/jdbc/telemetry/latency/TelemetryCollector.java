@@ -112,6 +112,21 @@ public class TelemetryCollector {
   }
 
   /**
+   * Gets the telemetry details for a statement if present
+   * Otherwise creates a new one and persist
+   *
+   * @param statementId the statement ID
+   */
+  public StatementTelemetryDetails getOrCreateTelemetryDetails(String statementId) {
+    if (statementId == null) {
+      LOGGER.trace("Statement ID is null, returning null telemetry details");
+      return null;
+    }
+    return statementTrackers
+            .computeIfAbsent(statementId, k -> new StatementTelemetryDetails(statementId));
+  }
+
+  /**
    * Exports all pending telemetry details and clears the trackers. This method is called when the
    * connection/client is being closed.
    */
