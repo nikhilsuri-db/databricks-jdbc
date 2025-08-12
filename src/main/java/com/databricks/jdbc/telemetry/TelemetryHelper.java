@@ -125,6 +125,12 @@ public class TelemetryHelper {
       String errorMessage,
       String statementId,
       Long chunkIndex) {
+    LOGGER.trace(
+        String.format(
+            "Exporting databricks failure logs for statement   %s. errorName %s errorMessage %s",
+            statementId,
+                errorName
+                ,errorMessage));
     StatementTelemetryDetails telemetryDetails =
         TelemetryCollector.getInstance().getTelemetryDetails(statementId);
     DriverErrorInfo errorInfo =
