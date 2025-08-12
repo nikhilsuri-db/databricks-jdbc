@@ -99,26 +99,12 @@ public class TelemetryCollector {
   }
 
   /**
-   * Gets the telemetry details for a statement.
-   *
-   * @param statementId the statement ID
-   */
-  public StatementTelemetryDetails getTelemetryDetails(String statementId) {
-    if (statementId == null) {
-      LOGGER.trace("Statement ID is null, returning null telemetry details");
-      return null;
-    }
-    return statementTrackers.get(statementId);
-  }
-
-  /**
    * Gets the telemetry details for a statement if present Otherwise creates a new one and persist
    *
    * @param statementId the statement ID
    */
   public StatementTelemetryDetails getOrCreateTelemetryDetails(String statementId) {
     if (statementId == null) {
-      LOGGER.trace("Statement ID is null, returning null telemetry details");
       return null;
     }
     return statementTrackers.computeIfAbsent(
