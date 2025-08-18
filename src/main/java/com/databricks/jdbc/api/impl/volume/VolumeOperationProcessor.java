@@ -190,6 +190,11 @@ class VolumeOperationProcessor {
 
   private void validateLocalFilePath() {
     if (isAllowedInputStreamForVolumeOperation) {
+      if (!allowStreamBasedVolumeOperations) {
+        status = VolumeOperationStatus.ABORTED;
+        errorMessage = "Volume operations on stream not allowed";
+        LOGGER.error(errorMessage);
+      }
       return;
     }
 

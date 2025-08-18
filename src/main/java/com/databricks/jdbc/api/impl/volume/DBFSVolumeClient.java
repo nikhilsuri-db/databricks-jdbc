@@ -66,6 +66,7 @@ public class DBFSVolumeClient implements IDatabricksVolumeClient, Closeable {
   final WorkspaceClient workspaceClient;
   final ApiClient apiClient;
   private final String allowedVolumeIngestionPaths;
+  private final boolean allowStreamBasedVolumeOperations;
 
   /**
    * Initial delay in milliseconds before the first retry attempt. Used as the base value for
@@ -95,6 +96,7 @@ public class DBFSVolumeClient implements IDatabricksVolumeClient, Closeable {
     this.apiClient = workspaceClient.apiClient();
     this.databricksHttpClient = null;
     this.allowedVolumeIngestionPaths = "";
+    this.allowStreamBasedVolumeOperations = false;
     this.presignedUrlSemaphore = new Semaphore(50);
   }
 
@@ -106,6 +108,7 @@ public class DBFSVolumeClient implements IDatabricksVolumeClient, Closeable {
         DatabricksHttpClientFactory.getInstance()
             .getClient(connectionContext, HttpClientType.VOLUME);
     this.allowedVolumeIngestionPaths = connectionContext.getVolumeOperationAllowedPaths();
+    this.allowStreamBasedVolumeOperations = false;
     int maxConcurrentRequests = connectionContext.getMaxDBFSConcurrentPresignedRequests();
     this.presignedUrlSemaphore = new Semaphore(maxConcurrentRequests);
   }
