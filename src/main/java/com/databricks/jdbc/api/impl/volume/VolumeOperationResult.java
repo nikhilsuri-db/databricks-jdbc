@@ -1,7 +1,6 @@
 package com.databricks.jdbc.api.impl.volume;
 
-import static com.databricks.jdbc.common.DatabricksJdbcConstants.ALLOWED_STAGING_INGESTION_PATHS;
-import static com.databricks.jdbc.common.DatabricksJdbcConstants.ALLOWED_VOLUME_INGESTION_PATHS;
+import static com.databricks.jdbc.common.DatabricksJdbcConstants.*;
 
 import com.databricks.jdbc.api.impl.IExecutionResult;
 import com.databricks.jdbc.api.impl.VolumeOperationStatus;
@@ -91,7 +90,8 @@ public class VolumeOperationResult implements IExecutionResult {
             .localFilePath(localFile)
             .allowedVolumeIngestionPathString(allowedVolumeIngestionPaths)
             .isAllowedInputStreamForVolumeOperation(
-                statement.isAllowedInputStreamForVolumeOperation())
+                statement.isAllowedInputStreamForVolumeOperation()
+                    && isAllowStreamBasedVolumeOperation())
             .inputStream(statement.getInputStreamForUCVolume())
             .databricksHttpClient(httpClient)
             .getStreamReceiver(
@@ -122,6 +122,13 @@ public class VolumeOperationResult implements IExecutionResult {
       allowedPaths = session.getConnectionContext().getVolumeOperationAllowedPaths();
     }
     return allowedPaths;
+  }
+
+  private boolean isAllowStreamBasedVolumeOperation() {
+    String allowStreamBasedVolumeOperations =
+        session.getClientInfoProperties().get(ALLOW_STREAM_BASED_VOLUME_OPERATIONS);
+    return Boolean.parseBoolean(
+        allowStreamBasedVolumeOperations); // "true" → true, "false"/null/other → false
   }
 
   private String getString(Object obj) {

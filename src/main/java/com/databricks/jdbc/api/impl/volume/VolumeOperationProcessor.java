@@ -34,6 +34,7 @@ class VolumeOperationProcessor {
   private final String localFilePath;
   private final Map<String, String> headers;
   private final Set<String> allowedVolumeIngestionPaths;
+  private final boolean allowStreamBasedVolumeOperations;
   private final boolean isAllowedInputStreamForVolumeOperation;
   private final IDatabricksHttpClient databricksHttpClient;
   private final InputStreamEntity inputStream;
@@ -47,6 +48,7 @@ class VolumeOperationProcessor {
     this.localFilePath = builder.localFilePath;
     this.headers = builder.headers;
     this.allowedVolumeIngestionPaths = builder.allowedVolumeIngestionPaths;
+    this.allowStreamBasedVolumeOperations = builder.allowStreamBasedVolumeOperations;
     this.isAllowedInputStreamForVolumeOperation = builder.isAllowedInputStreamForVolumeOperation;
     this.inputStream = builder.inputStream;
     this.getStreamReceiver = builder.getStreamReceiver;
@@ -61,6 +63,7 @@ class VolumeOperationProcessor {
     private String localFilePath = null;
     private Map<String, String> headers = new HashMap<>();
     private Set<String> allowedVolumeIngestionPaths = null;
+    private boolean allowStreamBasedVolumeOperations = false;
     private boolean isAllowedInputStreamForVolumeOperation = false;
     private IDatabricksHttpClient databricksHttpClient = null;
     private InputStreamEntity inputStream = null;
@@ -100,6 +103,11 @@ class VolumeOperationProcessor {
     public Builder isAllowedInputStreamForVolumeOperation(
         boolean isAllowedInputStreamForVolumeOperation) {
       this.isAllowedInputStreamForVolumeOperation = isAllowedInputStreamForVolumeOperation;
+      return this;
+    }
+
+    public Builder isAllowStreamBasedVolumeOperations(boolean allowStreamBasedVolumeOperations) {
+      this.allowStreamBasedVolumeOperations = allowStreamBasedVolumeOperations;
       return this;
     }
 
