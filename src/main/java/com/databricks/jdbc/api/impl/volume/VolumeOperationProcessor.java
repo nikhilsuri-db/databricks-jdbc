@@ -159,7 +159,7 @@ class VolumeOperationProcessor {
       LOGGER.error(errorMessage);
       return;
     }
-    validateLocalFilePath();
+    validateVolumeOperationsOnFileOrStream();
     if (status == VolumeOperationStatus.ABORTED) {
       return;
     }
@@ -188,7 +188,7 @@ class VolumeOperationProcessor {
     return errorMessage;
   }
 
-  private void validateLocalFilePath() {
+  private void validateVolumeOperationsOnFileOrStream() {
     if (isAllowedInputStreamForVolumeOperation) {
       if (!allowStreamBasedVolumeOperations) {
         status = VolumeOperationStatus.ABORTED;
@@ -198,15 +198,17 @@ class VolumeOperationProcessor {
       return;
     }
 
+    if (operationType == VolumeUtil.VolumeOperationType.REMOVE) {
+      return;
+    }
+
     if (allowedVolumeIngestionPaths.isEmpty()) {
       status = VolumeOperationStatus.ABORTED;
       errorMessage = "Volume ingestion paths are not set";
       LOGGER.error(errorMessage);
       return;
     }
-    if (operationType == VolumeUtil.VolumeOperationType.REMOVE) {
-      return;
-    }
+
     if (localFilePath == null
         || localFilePath.isEmpty()
         || localFilePath.contains(PARENT_DIRECTORY_REF)) {
