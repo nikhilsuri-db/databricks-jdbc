@@ -580,14 +580,9 @@ public class DBFSVolumeClient implements IDatabricksVolumeClient, Closeable {
     }
   }
 
-  @VisibleForTesting
   void setVolumeOperationEntityStream(HttpEntity httpEntity) throws IOException {
     this.volumeInputStream = new VolumeInputStream(httpEntity);
     this.volumeStreamContentLength = httpEntity.getContentLength();
-  }
-
-  void setAllowStreamBasedVolumeOperations(boolean allowStreamBasedVolumeOperations) {
-    this.allowStreamBasedVolumeOperations = allowStreamBasedVolumeOperations;
   }
 
   public InputStreamEntity getVolumeOperationInputStream() {
