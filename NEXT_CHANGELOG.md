@@ -16,6 +16,6 @@ AbstractArrowResultChunk
 - Fixed retry behaviour to not throw an exception when there is no retry-after header for 503 and 429 status codes.
 - Fixed encoded UserAgent parsing in BI tools.
 - Fixed setting empty schema as the default schema in the spark session.
-- Fixed DatabricksUCVolumeClient delete functionality to avoid validation on file path and removed it's redundant dependency on VolumeOperationAllowedLocalPaths value being present 
+- Fixed `DatabricksUCVolumeClient` delete to skip file path validation and remove redundant dependency on `VolumeOperationAllowedLocalPaths`.
 ---
 *Note: When making changes, please add your change under the appropriate section with a brief description.* 
