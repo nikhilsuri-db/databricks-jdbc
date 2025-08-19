@@ -91,7 +91,7 @@ public class VolumeOperationResult implements IExecutionResult {
             .allowedVolumeIngestionPathString(allowedVolumeIngestionPaths)
             .isAllowedInputStreamForVolumeOperation(
                 statement.isAllowedInputStreamForVolumeOperation())
-            .isAllowedInputStreamForVolumeOperation(isAllowStreamBasedVolumeOperation())
+            .isAllowStreamBasedVolumeOperations(isAllowStreamBasedVolumeOperation())
             .inputStream(statement.getInputStreamForUCVolume())
             .databricksHttpClient(httpClient)
             .getStreamReceiver(
