@@ -30,7 +30,7 @@ if ! git log -1 --pretty=%B | grep -q "Signed-off-by:"; then
     echo
     # Optional: exit with error to fail the script
     # exit 1
-else
+els
     echo
     echo "✓ DCO check: Last commit includes a Signed-off-by line."
     echo
