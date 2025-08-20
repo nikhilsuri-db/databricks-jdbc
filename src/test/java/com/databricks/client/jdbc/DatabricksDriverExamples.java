@@ -664,6 +664,10 @@ public class DatabricksDriverExamples {
                   "main", "jdbc_test_schema", "jdbc_test_volume", "test-stream.csv", false));
 
       // Delete object
+      // setting new connection without explicit VolumeOperationAllowedLocalPaths property set
+      con.close();
+      con = DriverManager.getConnection(jdbcUrl, "token", DATABRICKS_TOKEN);
+      client = DatabricksVolumeClientFactory.getVolumeClient(con);
       client.deleteObject("main", "jdbc_test_schema", "jdbc_test_volume", "test-stream.csv");
       System.out.println(
           "Object exists after deletion? "
