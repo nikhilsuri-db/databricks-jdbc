@@ -12,7 +12,6 @@ if ! git diff --quiet; then
     echo "Please 'git add' and 'git commit' these to include formatting changes."
     echo "========================================================================"
     echo
-    # Optional: show the changed files
     git status --short
 else
     echo
@@ -28,8 +27,6 @@ if ! git log -1 --pretty=%B | grep -q "Signed-off-by:"; then
     echo "Please amend your commit with 'git commit -s --amend' to add it."
     echo "========================================================================"
     echo
-    # Optional: exit with error to fail the script
-    # exit 1
 else
     echo
     echo "✓ DCO check: Last commit includes a Signed-off-by line."
