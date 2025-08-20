@@ -12,7 +12,6 @@ import com.databricks.jdbc.api.impl.DatabricksConnectionContextFactory;
 import com.databricks.jdbc.api.impl.DatabricksResultSetMetaData;
 import com.databricks.jdbc.api.impl.volume.DatabricksVolumeClientFactory;
 import com.databricks.jdbc.api.internal.IDatabricksConnectionContext;
-import com.databricks.jdbc.common.DatabricksJdbcConstants;
 import com.databricks.jdbc.exception.DatabricksSQLException;
 import com.databricks.jdbc.model.client.filesystem.VolumePutResult;
 import com.databricks.sdk.service.sql.StatementState;
@@ -628,8 +627,6 @@ public class DatabricksDriverExamples {
 
     Connection con = DriverManager.getConnection(jdbcUrl, "token", DATABRICKS_TOKEN);
 
-    // Example setting an allowed ingestion path
-    con.setClientInfo(DatabricksJdbcConstants.ALLOWED_VOLUME_INGESTION_PATHS, "delete");
     System.out.println("Connection created.");
 
     var client = DatabricksVolumeClientFactory.getVolumeClient(con);
@@ -664,10 +661,6 @@ public class DatabricksDriverExamples {
                   "main", "jdbc_test_schema", "jdbc_test_volume", "test-stream.csv", false));
 
       // Delete object
-      // setting new connection without explicit VolumeOperationAllowedLocalPaths property set
-      con.close();
-      con = DriverManager.getConnection(jdbcUrl, "token", DATABRICKS_TOKEN);
-      client = DatabricksVolumeClientFactory.getVolumeClient(con);
       client.deleteObject("main", "jdbc_test_schema", "jdbc_test_volume", "test-stream.csv");
       System.out.println(
           "Object exists after deletion? "
