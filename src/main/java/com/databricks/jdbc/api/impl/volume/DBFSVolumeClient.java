@@ -1,7 +1,6 @@
 package com.databricks.jdbc.api.impl.volume;
 
 import static com.databricks.jdbc.api.impl.volume.DatabricksUCVolumeClient.getObjectFullPath;
-import static com.databricks.jdbc.common.DatabricksJdbcConstants.ALLOW_STREAM_BASED_VOLUME_OPERATIONS;
 import static com.databricks.jdbc.common.DatabricksJdbcConstants.JSON_HTTP_HEADERS;
 import static com.databricks.jdbc.common.util.VolumeUtil.VolumeOperationType.constructListPath;
 import static com.databricks.jdbc.dbclient.impl.sqlexec.PathConstants.*;
@@ -67,7 +66,7 @@ public class DBFSVolumeClient implements IDatabricksVolumeClient, Closeable {
   final WorkspaceClient workspaceClient;
   final ApiClient apiClient;
   private final String allowedVolumeIngestionPaths;
-  private boolean allowStreamBasedVolumeOperations;
+  private final boolean allowVolumeOperations;
 
   /**
    * Initial delay in milliseconds before the first retry attempt. Used as the base value for
@@ -97,7 +96,7 @@ public class DBFSVolumeClient implements IDatabricksVolumeClient, Closeable {
     this.apiClient = workspaceClient.apiClient();
     this.databricksHttpClient = null;
     this.allowedVolumeIngestionPaths = "";
-    this.allowStreamBasedVolumeOperations = false;
+    this.allowVolumeOperations = false;
     this.presignedUrlSemaphore = new Semaphore(50);
   }
 
@@ -109,17 +108,9 @@ public class DBFSVolumeClient implements IDatabricksVolumeClient, Closeable {
         DatabricksHttpClientFactory.getInstance()
             .getClient(connectionContext, HttpClientType.VOLUME);
     this.allowedVolumeIngestionPaths = connectionContext.getVolumeOperationAllowedPaths();
-    this.allowStreamBasedVolumeOperations = isAllowStreamBasedVolumeOperation(connectionContext);
+    this.allowVolumeOperations = connectionContext.isVolumeOperationsAllowed();
     int maxConcurrentRequests = connectionContext.getMaxDBFSConcurrentPresignedRequests();
     this.presignedUrlSemaphore = new Semaphore(maxConcurrentRequests);
-  }
-
-  private boolean isAllowStreamBasedVolumeOperation(
-      IDatabricksConnectionContext connectionContext) {
-    String allowStreamBasedVolumeOperations =
-        connectionContext.getClientInfoProperties().get(ALLOW_STREAM_BASED_VOLUME_OPERATIONS);
-    return Boolean.parseBoolean(
-        allowStreamBasedVolumeOperations); // "true" → true, "false"/null/other → false
   }
 
   /** {@inheritDoc} */
@@ -325,7 +316,7 @@ public class DBFSVolumeClient implements IDatabricksVolumeClient, Closeable {
               .operationType(VolumeUtil.VolumeOperationType.GET)
               .operationUrl(response.getUrl())
               .isAllowedInputStreamForVolumeOperation(true)
-              .isAllowStreamBasedVolumeOperations(allowStreamBasedVolumeOperations)
+              .isAllowVolumeOperations(allowVolumeOperations)
               .databricksHttpClient(databricksHttpClient)
               .getStreamReceiver(
                   (entity) -> {
@@ -378,6 +369,7 @@ public class DBFSVolumeClient implements IDatabricksVolumeClient, Closeable {
       VolumeOperationProcessor volumeOperationProcessor =
           VolumeOperationProcessor.Builder.createBuilder()
               .operationType(VolumeUtil.VolumeOperationType.PUT)
+              .isAllowVolumeOperations(allowVolumeOperations)
               .operationUrl(response.getUrl())
               .localFilePath(localPath)
               .allowedVolumeIngestionPathString(allowedVolumeIngestionPaths)
@@ -428,7 +420,7 @@ public class DBFSVolumeClient implements IDatabricksVolumeClient, Closeable {
               .operationType(VolumeUtil.VolumeOperationType.PUT)
               .operationUrl(response.getUrl())
               .isAllowedInputStreamForVolumeOperation(true)
-              .isAllowStreamBasedVolumeOperations(allowStreamBasedVolumeOperations)
+              .isAllowVolumeOperations(allowVolumeOperations)
               .inputStream(inputStreamEntity)
               .databricksHttpClient(databricksHttpClient)
               .build();
@@ -465,6 +457,7 @@ public class DBFSVolumeClient implements IDatabricksVolumeClient, Closeable {
       VolumeOperationProcessor volumeOperationProcessor =
           VolumeOperationProcessor.Builder.createBuilder()
               .operationType(VolumeUtil.VolumeOperationType.REMOVE)
+              .isAllowVolumeOperations(allowVolumeOperations)
               .operationUrl(response.getUrl())
               .databricksHttpClient(databricksHttpClient)
               .build();

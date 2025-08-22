@@ -796,6 +796,17 @@ public class DatabricksConnectionContext implements IDatabricksConnectionContext
   }
 
   @Override
+  public Boolean isVolumeOperationsAllowed() {
+    String allowVolumeOperations =
+        getClientInfoProperties().get(ALLOW_VOLUME_OPERATIONS.toLowerCase());
+    if (allowVolumeOperations == null) {
+      return false;
+    }
+    String value = allowVolumeOperations.trim();
+    return value.equalsIgnoreCase("true") || value.equals("1");
+  }
+
+  @Override
   public boolean isSqlExecHybridResultsEnabled() {
     return getParameter(DatabricksJdbcUrlParams.ENABLE_SQL_EXEC_HYBRID_RESULTS).equals("1");
   }

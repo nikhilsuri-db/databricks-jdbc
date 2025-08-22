@@ -1,7 +1,7 @@
 package com.databricks.jdbc.api.impl.volume;
 
 import static com.databricks.jdbc.common.DatabricksJdbcConstants.ALLOWED_VOLUME_INGESTION_PATHS;
-import static com.databricks.jdbc.common.DatabricksJdbcConstants.ALLOW_STREAM_BASED_VOLUME_OPERATIONS;
+import static com.databricks.jdbc.common.DatabricksJdbcConstants.ALLOW_VOLUME_OPERATIONS;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.when;
@@ -61,9 +61,11 @@ public class VolumeOperationResultTest {
           .setTotalRowCount(1L)
           .setSchema(new ResultSchema().setColumnCount(4L));
 
-  static Stream<Arguments> allowStreamBasedVolumeOperationsProvider() {
+  static Stream<Arguments> allowVolumeOperations() {
     return Stream.of(
         Arguments.of("true", true),
+        Arguments.of("1", true),
+        Arguments.of("0", false),
         Arguments.of("True", true),
         Arguments.of("TrUe", true),
         Arguments.of("null", false),
@@ -105,11 +107,11 @@ public class VolumeOperationResultTest {
   }
 
   @ParameterizedTest
-  @MethodSource("allowStreamBasedVolumeOperationsProvider")
+  @MethodSource("allowVolumeOperations")
   public void testGetResult_InputStream_Get(String propertyValue, boolean expected)
       throws Exception {
     setupCommonInteractions();
-    buildClientInfoProperties(Map.of(ALLOW_STREAM_BASED_VOLUME_OPERATIONS, propertyValue));
+    buildClientInfoProperties(Map.of(ALLOW_VOLUME_OPERATIONS.toLowerCase(), propertyValue));
     when(resultHandler.getObject(0)).thenReturn("GET");
     when(resultHandler.getObject(1)).thenReturn(PRESIGNED_URL);
     when(resultHandler.getObject(3)).thenReturn("__input_stream__");
@@ -130,7 +132,7 @@ public class VolumeOperationResultTest {
     if (expected) {
       assertSuccessVolumeGetOperations(volumeOperationResult);
     } else {
-      assertFailedVolumeOperations(volumeOperationResult);
+      assertFailedStreamVolumeOperations(volumeOperationResult);
     }
   }
 
@@ -363,11 +365,11 @@ public class VolumeOperationResultTest {
   }
 
   @ParameterizedTest
-  @MethodSource("allowStreamBasedVolumeOperationsProvider")
+  @MethodSource("allowVolumeOperations")
   public void testGetResult_Put_withInputStream(String propertyValue, boolean expected)
       throws Exception {
     setupCommonInteractions();
-    buildClientInfoProperties(Map.of(ALLOW_STREAM_BASED_VOLUME_OPERATIONS, propertyValue));
+    buildClientInfoProperties(Map.of(ALLOW_VOLUME_OPERATIONS.toLowerCase(), propertyValue));
     when(resultHandler.getObject(0)).thenReturn("PUT");
     when(resultHandler.getObject(1)).thenReturn(PRESIGNED_URL);
     when(resultHandler.getObject(3)).thenReturn("__input_stream__");
@@ -386,14 +388,14 @@ public class VolumeOperationResultTest {
     if (expected) {
       assertSuccessVolumePutOperations(volumeOperationResult);
     } else {
-      assertFailedVolumeOperations(volumeOperationResult);
+      assertFailedStreamVolumeOperations(volumeOperationResult);
     }
   }
 
   @Test
   public void testGetResult_Put_withNullInputStream() throws Exception {
     setupCommonInteractions();
-    buildClientInfoProperties(Map.of(ALLOW_STREAM_BASED_VOLUME_OPERATIONS, "True"));
+    buildClientInfoProperties(Map.of(ALLOW_VOLUME_OPERATIONS.toLowerCase(), "True"));
     when(resultHandler.getObject(0)).thenReturn("PUT");
     when(resultHandler.getObject(1)).thenReturn(PRESIGNED_URL);
     when(resultHandler.getObject(3)).thenReturn("__input_stream__");
@@ -552,6 +554,7 @@ public class VolumeOperationResultTest {
   public void testGetResult_Remove() throws Exception {
     setupCommonInteractions();
     when(resultHandler.getObject(0)).thenReturn("REMOVE");
+    buildClientInfoProperties(Map.of(ALLOW_VOLUME_OPERATIONS.toLowerCase(), "1"));
     when(resultHandler.getObject(1)).thenReturn(PRESIGNED_URL);
     when(resultHandler.getObject(3)).thenReturn(null);
     when(mockHttpClient.execute(isA(HttpDelete.class))).thenReturn(httpResponse);
@@ -577,8 +580,11 @@ public class VolumeOperationResultTest {
     }
   }
 
-  @Test
-  public void testGetResult_RemoveWithConnectionUrlPath() throws Exception {
+  @ParameterizedTest
+  @MethodSource("allowVolumeOperations")
+  void testGetResult_RemoveWithConnectionUrlPath(String propertyValue, boolean expected)
+      throws Exception {
+    // Mocks as per your original test
     when(resultHandler.hasNext())
         .thenReturn(true)
         .thenReturn(true)
@@ -586,34 +592,47 @@ public class VolumeOperationResultTest {
         .thenReturn(false);
     when(resultHandler.next()).thenReturn(true).thenReturn(false);
     when(resultHandler.getObject(2)).thenReturn(HEADERS);
-    when(session.getClientInfoProperties()).thenReturn(new HashMap<>());
+    Map<String, String> clientProps = new HashMap<>();
+    clientProps.put(ALLOW_VOLUME_OPERATIONS.toLowerCase(), propertyValue);
+    when(session.getClientInfoProperties()).thenReturn(clientProps);
     when(session.getConnectionContext()).thenReturn(context);
     when(context.getVolumeOperationAllowedPaths()).thenReturn(ALLOWED_PATHS);
     when(resultHandler.getObject(0)).thenReturn("REMOVE");
     when(resultHandler.getObject(1)).thenReturn(PRESIGNED_URL);
     when(resultHandler.getObject(3)).thenReturn(null);
-    when(mockHttpClient.execute(isA(HttpDelete.class))).thenReturn(httpResponse);
-    when(httpResponse.getStatusLine()).thenReturn(mockedStatusLine);
-    when(mockedStatusLine.getStatusCode()).thenReturn(200);
+    if (expected) {
+      when(mockHttpClient.execute(isA(HttpDelete.class))).thenReturn(httpResponse);
+      when(httpResponse.getStatusLine()).thenReturn(mockedStatusLine);
+      when(mockedStatusLine.getStatusCode()).thenReturn(200);
+    }
 
     when(session.getConnectionContext()).thenReturn(context);
-
     VolumeOperationResult volumeOperationResult =
         new VolumeOperationResult(
             RESULT_MANIFEST, session, resultHandler, mockHttpClient, statement);
-
     assertTrue(volumeOperationResult.hasNext());
     assertEquals(-1, volumeOperationResult.getCurrentRow());
-    assertTrue(volumeOperationResult.next());
-    assertEquals(0, volumeOperationResult.getCurrentRow());
-    assertEquals("SUCCEEDED", volumeOperationResult.getObject(0));
-    assertFalse(volumeOperationResult.hasNext());
-    assertFalse(volumeOperationResult.next());
-    try {
-      volumeOperationResult.getObject(2);
-      fail("Should throw DatabricksSQLException");
-    } catch (DatabricksSQLException e) {
-      assertEquals("Invalid column access", e.getMessage());
+    if (expected) {
+      assertTrue(volumeOperationResult.next());
+      assertEquals(0, volumeOperationResult.getCurrentRow());
+      assertEquals("SUCCEEDED", volumeOperationResult.getObject(0));
+      assertFalse(volumeOperationResult.hasNext());
+      assertFalse(volumeOperationResult.next());
+      try {
+        volumeOperationResult.getObject(2);
+        fail("Should throw DatabricksSQLException");
+      } catch (DatabricksSQLException e) {
+        assertEquals("Invalid column access", e.getMessage());
+      }
+    } else {
+      try {
+        volumeOperationResult.next();
+        fail("Should throw DatabricksSQLException");
+      } catch (DatabricksSQLException e) {
+        assertEquals(
+            "Volume operation status : ABORTED, Error message: AllowVolumeOperations property mandatory for remove operation on Volume",
+            e.getMessage());
+      }
     }
   }
 
@@ -621,6 +640,7 @@ public class VolumeOperationResultTest {
   public void testGetResult_RemoveFailed() throws Exception {
     setupCommonInteractions();
     when(resultHandler.getObject(0)).thenReturn("REMOVE");
+    buildClientInfoProperties(Map.of(ALLOW_VOLUME_OPERATIONS.toLowerCase(), "1"));
     when(resultHandler.getObject(1)).thenReturn(PRESIGNED_URL);
     when(resultHandler.getObject(3)).thenReturn(null);
     when(mockHttpClient.execute(isA(HttpDelete.class))).thenReturn(httpResponse);
@@ -648,6 +668,7 @@ public class VolumeOperationResultTest {
   public void testGetResult_RemoveFailedWithException() throws Exception {
     setupCommonInteractions();
     when(resultHandler.getObject(0)).thenReturn("REMOVE");
+    buildClientInfoProperties(Map.of(ALLOW_VOLUME_OPERATIONS.toLowerCase(), "1"));
     when(resultHandler.getObject(1)).thenReturn(PRESIGNED_URL);
     when(resultHandler.getObject(3)).thenReturn(null);
     when(mockHttpClient.execute(isA(HttpDelete.class)))
@@ -734,14 +755,13 @@ public class VolumeOperationResultTest {
             volumeOperationResult.getVolumeOperationInputStream().getContent().readAllBytes()));
   }
 
-  private void assertFailedVolumeOperations(VolumeOperationResult volumeOperationResult)
-      throws Exception {
+  private void assertFailedStreamVolumeOperations(VolumeOperationResult volumeOperationResult) {
     try {
       volumeOperationResult.next();
       fail("Should throw DatabricksSQLException");
     } catch (DatabricksSQLException e) {
       assertEquals(
-          "Volume operation status : ABORTED, Error message: Volume operations on stream not allowed",
+          "Volume operation status : ABORTED, Error message: AllowVolumeOperations property mandatory for Volume operations on stream",
           e.getMessage());
     }
   }

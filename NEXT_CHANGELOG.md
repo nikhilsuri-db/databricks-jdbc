@@ -16,6 +16,6 @@ AbstractArrowResultChunk
 - Fixed retry behaviour to not throw an exception when there is no retry-after header for 503 and 429 status codes.
 - Fixed encoded UserAgent parsing in BI tools.
 - Fixed setting empty schema as the default schema in the spark session.
-- Added a client gate property to control steam operations on a volume - AllowStreamBasedVolumeOperations
+- Added a client property `ALLOW_VOLUME_OPERATIONS` to enable/disable volume operations.
 ---
 *Note: When making changes, please add your change under the appropriate section with a brief description.* 

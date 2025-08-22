@@ -275,8 +275,9 @@ class DBFSVolumeClientTest {
         () -> client.putObject("catalog", "schema", "volume", "objectPath", "localPath", true));
   }
 
-  @Test
-  void testDeleteObject() throws Exception {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void testDeleteObject(boolean allowVolumeOperations) throws Exception {
     // Volume Operation builder spy
     VolumeOperationProcessor.Builder realBuilder = VolumeOperationProcessor.Builder.createBuilder();
     processorBuilder = spy(realBuilder);
@@ -291,17 +292,32 @@ class DBFSVolumeClientTest {
       mockedStatic
           .when(VolumeOperationProcessor.Builder::createBuilder)
           .thenReturn(processorBuilder);
-
-      boolean result = client.deleteObject("catalog", "schema", "volume", "objectPath");
-
-      assertTrue(result);
+      if (!allowVolumeOperations) {
+        when(mockProcessor.getStatus()).thenReturn(VolumeOperationStatus.ABORTED);
+        when(mockProcessor.getErrorMessage())
+            .thenReturn("AllowVolumeOperations property mandatory for remove operation on Volume");
+      }
+      if (allowVolumeOperations) {
+        boolean result = client.deleteObject("catalog", "schema", "volume", "objectPath");
+        assertTrue(result);
+        verify(mockProcessor).process();
+      } else {
+        DatabricksVolumeOperationException ex =
+            assertThrows(
+                DatabricksVolumeOperationException.class,
+                () -> client.deleteObject("catalog", "schema", "volume", "objectPath"));
+        assertTrue(
+            ex.getMessage()
+                .contains(
+                    "Failed to delete object {Volume operation aborted: AllowVolumeOperations property mandatory for remove operation on Volume}"));
+      }
       verify(mockProcessor).process();
     }
   }
 
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
-  void testPutObjectWithInputStream(boolean allowStreamBasedVolumeOperations) throws Exception {
+  void testPutObjectWithInputStream(boolean allowVolumeOperations) throws Exception {
     // Volume Operation builder spy
     VolumeOperationProcessor.Builder realBuilder = VolumeOperationProcessor.Builder.createBuilder();
     processorBuilder = spy(realBuilder);
@@ -315,13 +331,14 @@ class DBFSVolumeClientTest {
       mockedStatic
           .when(VolumeOperationProcessor.Builder::createBuilder)
           .thenReturn(processorBuilder);
-      if (!allowStreamBasedVolumeOperations) {
+      if (!allowVolumeOperations) {
         when(mockProcessor.getStatus()).thenReturn(VolumeOperationStatus.ABORTED);
-        when(mockProcessor.getErrorMessage()).thenReturn("Volume operations on stream not allowed");
+        when(mockProcessor.getErrorMessage())
+            .thenReturn("AllowVolumeOperations property mandatory for Volume operations on stream");
       }
       File file = new File(tempFolder, "dbfs_test_put.txt");
       Files.writeString(file.toPath(), "test-put-stream");
-      if (allowStreamBasedVolumeOperations) {
+      if (allowVolumeOperations) {
         boolean result;
         try (FileInputStream fis = new FileInputStream(file)) {
           result =
@@ -341,7 +358,7 @@ class DBFSVolumeClientTest {
           assertTrue(
               ex.getMessage()
                   .contains(
-                      "Failed to put object with inputStream- {Volume operation aborted: Volume operations on stream not allowed}"));
+                      "Failed to put object with inputStream- {Volume operation aborted: AllowVolumeOperations property mandatory for Volume operations on stream}"));
         }
         verify(mockProcessor).process();
       }
