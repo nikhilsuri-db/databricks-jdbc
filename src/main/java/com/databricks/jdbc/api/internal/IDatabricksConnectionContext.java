@@ -253,9 +253,6 @@ public interface IDatabricksConnectionContext {
   /** Returns allowlisted local file paths for UC Volume operations */
   String getVolumeOperationAllowedPaths();
 
-  /** Returns if volume operations are allowed by checking AllowVolumeOperations flag presence */
-  Boolean isVolumeOperationsAllowed();
-
   /** Returns true if driver should use hybrid results in SQL_EXEC API. */
   boolean isSqlExecHybridResultsEnabled();
 

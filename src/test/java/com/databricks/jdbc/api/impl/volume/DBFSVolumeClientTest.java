@@ -3,7 +3,6 @@ package com.databricks.jdbc.api.impl.volume;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import com.databricks.jdbc.api.impl.VolumeOperationStatus;
 import com.databricks.jdbc.exception.DatabricksVolumeOperationException;
 import com.databricks.jdbc.model.client.filesystem.*;
 import com.databricks.jdbc.model.telemetry.enums.DatabricksDriverErrorCode;
@@ -19,8 +18,6 @@ import java.util.List;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -186,6 +183,7 @@ class DBFSVolumeClientTest {
     VolumeOperationProcessor.Builder realBuilder = VolumeOperationProcessor.Builder.createBuilder();
     processorBuilder = spy(realBuilder);
     doReturn(mockProcessor).when(processorBuilder).build();
+
     CreateDownloadUrlResponse mockResponse = mock(CreateDownloadUrlResponse.class);
     when(mockResponse.getUrl()).thenReturn(PRE_SIGNED_URL);
     doReturn(mockResponse).when(client).getCreateDownloadUrlResponse(any());
@@ -275,9 +273,41 @@ class DBFSVolumeClientTest {
         () -> client.putObject("catalog", "schema", "volume", "objectPath", "localPath", true));
   }
 
-  @ParameterizedTest
-  @ValueSource(booleans = {true, false})
-  void testDeleteObject(boolean allowVolumeOperations) throws Exception {
+  @Test
+  void testPutObjectWithInputStream() throws Exception {
+    // Volume Operation builder spy
+    VolumeOperationProcessor.Builder realBuilder = VolumeOperationProcessor.Builder.createBuilder();
+    processorBuilder = spy(realBuilder);
+    doReturn(mockProcessor).when(processorBuilder).build();
+
+    CreateUploadUrlResponse mockResponse = mock(CreateUploadUrlResponse.class);
+    when(mockResponse.getUrl()).thenReturn(PRE_SIGNED_URL);
+    doReturn(mockResponse).when(client).getCreateUploadUrlResponse(any());
+
+    try (MockedStatic<VolumeOperationProcessor.Builder> mockedStatic =
+        mockStatic(VolumeOperationProcessor.Builder.class)) {
+
+      mockedStatic
+          .when(VolumeOperationProcessor.Builder::createBuilder)
+          .thenReturn(processorBuilder);
+
+      File file = new File(tempFolder, "dbfs_test_put.txt");
+      Files.writeString(file.toPath(), "test-put-stream");
+      System.out.println("File created");
+
+      boolean result;
+      try (FileInputStream fis = new FileInputStream(file)) {
+        result =
+            client.putObject("catalog", "schema", "volume", "objectPath", fis, file.length(), true);
+      }
+
+      assertTrue(result);
+      verify(mockProcessor).process();
+    }
+  }
+
+  @Test
+  void testDeleteObject() throws Exception {
     // Volume Operation builder spy
     VolumeOperationProcessor.Builder realBuilder = VolumeOperationProcessor.Builder.createBuilder();
     processorBuilder = spy(realBuilder);
@@ -292,76 +322,11 @@ class DBFSVolumeClientTest {
       mockedStatic
           .when(VolumeOperationProcessor.Builder::createBuilder)
           .thenReturn(processorBuilder);
-      if (!allowVolumeOperations) {
-        when(mockProcessor.getStatus()).thenReturn(VolumeOperationStatus.ABORTED);
-        when(mockProcessor.getErrorMessage())
-            .thenReturn("AllowVolumeOperations property mandatory for remove operation on Volume");
-      }
-      if (allowVolumeOperations) {
-        boolean result = client.deleteObject("catalog", "schema", "volume", "objectPath");
-        assertTrue(result);
-        verify(mockProcessor).process();
-      } else {
-        DatabricksVolumeOperationException ex =
-            assertThrows(
-                DatabricksVolumeOperationException.class,
-                () -> client.deleteObject("catalog", "schema", "volume", "objectPath"));
-        assertTrue(
-            ex.getMessage()
-                .contains(
-                    "Failed to delete object {Volume operation aborted: AllowVolumeOperations property mandatory for remove operation on Volume}"));
-      }
+
+      boolean result = client.deleteObject("catalog", "schema", "volume", "objectPath");
+
+      assertTrue(result);
       verify(mockProcessor).process();
-    }
-  }
-
-  @ParameterizedTest
-  @ValueSource(booleans = {true, false})
-  void testPutObjectWithInputStream(boolean allowVolumeOperations) throws Exception {
-    // Volume Operation builder spy
-    VolumeOperationProcessor.Builder realBuilder = VolumeOperationProcessor.Builder.createBuilder();
-    processorBuilder = spy(realBuilder);
-    doReturn(mockProcessor).when(processorBuilder).build();
-    CreateUploadUrlResponse mockResponse = mock(CreateUploadUrlResponse.class);
-    when(mockResponse.getUrl()).thenReturn(PRE_SIGNED_URL);
-    doReturn(mockResponse).when(client).getCreateUploadUrlResponse(any());
-
-    try (MockedStatic<VolumeOperationProcessor.Builder> mockedStatic =
-        mockStatic(VolumeOperationProcessor.Builder.class)) {
-      mockedStatic
-          .when(VolumeOperationProcessor.Builder::createBuilder)
-          .thenReturn(processorBuilder);
-      if (!allowVolumeOperations) {
-        when(mockProcessor.getStatus()).thenReturn(VolumeOperationStatus.ABORTED);
-        when(mockProcessor.getErrorMessage())
-            .thenReturn("AllowVolumeOperations property mandatory for Volume operations on stream");
-      }
-      File file = new File(tempFolder, "dbfs_test_put.txt");
-      Files.writeString(file.toPath(), "test-put-stream");
-      if (allowVolumeOperations) {
-        boolean result;
-        try (FileInputStream fis = new FileInputStream(file)) {
-          result =
-              client.putObject(
-                  "catalog", "schema", "volume", "objectPath", fis, file.length(), true);
-        }
-        assertTrue(result);
-        verify(mockProcessor).process();
-      } else {
-        try (FileInputStream fis = new FileInputStream(file)) {
-          DatabricksVolumeOperationException ex =
-              assertThrows(
-                  DatabricksVolumeOperationException.class,
-                  () ->
-                      client.putObject(
-                          "catalog", "schema", "volume", "objectPath", fis, file.length(), true));
-          assertTrue(
-              ex.getMessage()
-                  .contains(
-                      "Failed to put object with inputStream- {Volume operation aborted: AllowVolumeOperations property mandatory for Volume operations on stream}"));
-        }
-        verify(mockProcessor).process();
-      }
     }
   }
 

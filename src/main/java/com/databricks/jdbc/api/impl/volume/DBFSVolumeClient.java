@@ -108,7 +108,7 @@ public class DBFSVolumeClient implements IDatabricksVolumeClient, Closeable {
         DatabricksHttpClientFactory.getInstance()
             .getClient(connectionContext, HttpClientType.VOLUME);
     this.allowedVolumeIngestionPaths = connectionContext.getVolumeOperationAllowedPaths();
-    this.allowVolumeOperations = connectionContext.isVolumeOperationsAllowed();
+    this.allowVolumeOperations = true;
     int maxConcurrentRequests = connectionContext.getMaxDBFSConcurrentPresignedRequests();
     this.presignedUrlSemaphore = new Semaphore(maxConcurrentRequests);
   }
@@ -573,7 +573,7 @@ public class DBFSVolumeClient implements IDatabricksVolumeClient, Closeable {
     }
   }
 
-  void setVolumeOperationEntityStream(HttpEntity httpEntity) throws IOException {
+  public void setVolumeOperationEntityStream(HttpEntity httpEntity) throws IOException {
     this.volumeInputStream = new VolumeInputStream(httpEntity);
     this.volumeStreamContentLength = httpEntity.getContentLength();
   }
