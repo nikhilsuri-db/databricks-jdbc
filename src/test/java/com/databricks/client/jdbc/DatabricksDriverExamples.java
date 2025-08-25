@@ -727,8 +727,8 @@ public class DatabricksDriverExamples {
 
   /**
    * Demonstrates DBFS volume operations (PUT, GET, LIST, DELETE) using streams. Replace the
-   * relevant path or volume name if you use a different setup. Enable enableVolumeOperations
-   * client property to perform these operations
+   * relevant path or volume name if you use a different setup. Enable enableVolumeOperations client
+   * property to perform these operations
    */
   @Test
   void exampleDBFSVolumeOperationUsingStream() throws Exception {

@@ -108,7 +108,8 @@ public class DBFSVolumeClient implements IDatabricksVolumeClient, Closeable {
         DatabricksHttpClientFactory.getInstance()
             .getClient(connectionContext, HttpClientType.VOLUME);
     this.allowedVolumeIngestionPaths = connectionContext.getVolumeOperationAllowedPaths();
-    // When enableVolumeOperations is disabled, volume operations on streams are blocked which are accessed directly via a connection URL.
+    // When enableVolumeOperations is disabled, volume operations on streams are blocked which are
+    // accessed directly via a connection URL.
     // Operations performed through  `DBFSVolumeClient` are not restricted by this setting.
     this.enableVolumeOperations = true;
     int maxConcurrentRequests = connectionContext.getMaxDBFSConcurrentPresignedRequests();
