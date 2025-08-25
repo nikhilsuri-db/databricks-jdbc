@@ -82,7 +82,7 @@ public class VolumeOperationResult implements IExecutionResult {
     String localFile = columnCount > 3 ? getString(resultHandler.getObject(3)) : null;
     Map<String, String> headers = getHeaders(getString(resultHandler.getObject(2)));
     String allowedVolumeIngestionPaths = getAllowedVolumeIngestionPaths();
-    boolean volumeOperationsAllowed = isAllowVolumeOperations();
+    boolean volumeOperationsAllowed = isEnableVolumeOperations();
     this.volumeOperationProcessor =
         VolumeOperationProcessor.Builder.createBuilder()
             .operationType(operation)
@@ -92,7 +92,7 @@ public class VolumeOperationResult implements IExecutionResult {
             .allowedVolumeIngestionPathString(allowedVolumeIngestionPaths)
             .isAllowedInputStreamForVolumeOperation(
                 statement.isAllowedInputStreamForVolumeOperation())
-            .isAllowVolumeOperations(volumeOperationsAllowed)
+            .isEnableVolumeOperations(volumeOperationsAllowed)
             .inputStream(statement.getInputStreamForUCVolume())
             .databricksHttpClient(httpClient)
             .getStreamReceiver(
@@ -125,13 +125,13 @@ public class VolumeOperationResult implements IExecutionResult {
     return allowedPaths;
   }
 
-  private boolean isAllowVolumeOperations() {
-    String allowVolumeOperations =
-        session.getClientInfoProperties().get(ALLOW_VOLUME_OPERATIONS.toLowerCase());
-    if (allowVolumeOperations == null) {
+  private boolean isEnableVolumeOperations() {
+    String enableVolumeOperations =
+        session.getClientInfoProperties().get(ENABLE_VOLUME_OPERATIONS.toLowerCase());
+    if (enableVolumeOperations == null) {
       return false;
     }
-    String value = allowVolumeOperations.trim();
+    String value = enableVolumeOperations.trim();
     return value.equalsIgnoreCase("true") || value.equals("1");
   }
 

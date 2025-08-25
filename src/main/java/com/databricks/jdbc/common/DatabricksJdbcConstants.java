@@ -63,7 +63,7 @@ public final class DatabricksJdbcConstants {
   public static final int DEFAULT_PORT = 443;
   public static final String THRIFT_ERROR_MESSAGE_HEADER = "X-Thriftserver-Error-Message";
   public static final String ALLOWED_VOLUME_INGESTION_PATHS = "VolumeOperationAllowedLocalPaths";
-  public static final String ALLOW_VOLUME_OPERATIONS = "AllowVolumeOperations";
+  public static final String ENABLE_VOLUME_OPERATIONS = "enableVolumeOperations";
   public static final String ALLOWED_STAGING_INGESTION_PATHS = "StagingAllowedLocalPaths";
   public static final String VOLUME_OPERATION_STATUS_COLUMN_NAME = "operation_status";
   public static final String VOLUME_OPERATION_STATUS_SUCCEEDED = "SUCCEEDED";
@@ -87,7 +87,7 @@ public final class DatabricksJdbcConstants {
   public static final Set<String> ALLOWED_CLIENT_INFO_PROPERTIES =
       Set.of(
           ALLOWED_VOLUME_INGESTION_PATHS,
-          ALLOW_VOLUME_OPERATIONS,
+          ENABLE_VOLUME_OPERATIONS,
           ALLOWED_STAGING_INGESTION_PATHS,
           DatabricksJdbcUrlParams.AUTH_ACCESS_TOKEN.getParamName(),
           DatabricksJdbcUrlParams.APPLICATION_NAME.getParamName());

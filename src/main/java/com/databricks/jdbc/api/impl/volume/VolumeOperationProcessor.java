@@ -34,7 +34,7 @@ class VolumeOperationProcessor {
   private final String localFilePath;
   private final Map<String, String> headers;
   private final Set<String> allowedVolumeIngestionPaths;
-  private final boolean allowVolumeOperations;
+  private final boolean enableVolumeOperations;
   private final boolean isAllowedInputStreamForVolumeOperation;
   private final IDatabricksHttpClient databricksHttpClient;
   private final InputStreamEntity inputStream;
@@ -48,7 +48,7 @@ class VolumeOperationProcessor {
     this.localFilePath = builder.localFilePath;
     this.headers = builder.headers;
     this.allowedVolumeIngestionPaths = builder.allowedVolumeIngestionPaths;
-    this.allowVolumeOperations = builder.allowVolumeOperations;
+    this.enableVolumeOperations = builder.enableVolumeOperations;
     this.isAllowedInputStreamForVolumeOperation = builder.isAllowedInputStreamForVolumeOperation;
     this.inputStream = builder.inputStream;
     this.getStreamReceiver = builder.getStreamReceiver;
@@ -63,7 +63,7 @@ class VolumeOperationProcessor {
     private String localFilePath = null;
     private Map<String, String> headers = new HashMap<>();
     private Set<String> allowedVolumeIngestionPaths = null;
-    private boolean allowVolumeOperations = false;
+    private boolean enableVolumeOperations = false;
     private boolean isAllowedInputStreamForVolumeOperation = false;
     private IDatabricksHttpClient databricksHttpClient = null;
     private InputStreamEntity inputStream = null;
@@ -106,8 +106,8 @@ class VolumeOperationProcessor {
       return this;
     }
 
-    public Builder isAllowVolumeOperations(boolean allowVolumeOperations) {
-      this.allowVolumeOperations = allowVolumeOperations;
+    public Builder isEnableVolumeOperations(boolean enableVolumeOperations) {
+      this.enableVolumeOperations = enableVolumeOperations;
       return this;
     }
 
@@ -190,18 +190,18 @@ class VolumeOperationProcessor {
 
   private void validateVolumeOperationsOnFileOrStream() {
     if (isAllowedInputStreamForVolumeOperation) {
-      if (!allowVolumeOperations) {
+      if (!enableVolumeOperations) {
         status = VolumeOperationStatus.ABORTED;
-        errorMessage = "AllowVolumeOperations property mandatory for Volume operations on stream";
+        errorMessage = "enableVolumeOperations property mandatory for Volume operations on stream";
         LOGGER.error(errorMessage);
       }
       return;
     }
 
     if (operationType == VolumeUtil.VolumeOperationType.REMOVE) {
-      if (!allowVolumeOperations) {
+      if (!enableVolumeOperations) {
         status = VolumeOperationStatus.ABORTED;
-        errorMessage = "AllowVolumeOperations property mandatory for remove operation on Volume";
+        errorMessage = "enableVolumeOperations property mandatory for remove operation on Volume";
         LOGGER.error(errorMessage);
       }
       return;
