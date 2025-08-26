@@ -9,6 +9,7 @@
 - Added a client property `enableVolumeOperations` to enable  GET/PUT/REMOVE volume operations on a stream. For backward compatibility, allowedVolumeIngestionPaths can also be used for REMOVE operation.   
 
 ### Updated
+- Databricks SDK dependency upgraded to latest version 0.60.0
 
 ### Fixed
 -
