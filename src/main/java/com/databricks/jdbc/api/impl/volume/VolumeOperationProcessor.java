@@ -199,9 +199,10 @@ class VolumeOperationProcessor {
     }
 
     if (operationType == VolumeUtil.VolumeOperationType.REMOVE) {
-      if (!enableVolumeOperations) {
+      if (!enableVolumeOperations && allowedVolumeIngestionPaths.isEmpty()) {
         status = VolumeOperationStatus.ABORTED;
-        errorMessage = "enableVolumeOperations property mandatory for remove operation on Volume";
+        errorMessage =
+            "enableVolumeOperations property or Volume ingestion paths required for remove operation on Volume";
         LOGGER.error(errorMessage);
       }
       return;
