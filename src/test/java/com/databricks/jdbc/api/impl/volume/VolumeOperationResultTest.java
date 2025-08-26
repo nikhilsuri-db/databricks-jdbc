@@ -582,7 +582,7 @@ public class VolumeOperationResultTest {
 
   @ParameterizedTest
   @MethodSource("enableVolumeOperations")
-  void testGetResult_RemoveWithConnectionUrlPath(String propertyValue, boolean expected)
+  void testGetResult_RemoveWithoutEitherPropertySet(String propertyValue, boolean expected)
       throws Exception {
     // Mocks as per your original test
     when(resultHandler.hasNext())
@@ -596,7 +596,6 @@ public class VolumeOperationResultTest {
     clientProps.put(ENABLE_VOLUME_OPERATIONS.toLowerCase(), propertyValue);
     when(session.getClientInfoProperties()).thenReturn(clientProps);
     when(session.getConnectionContext()).thenReturn(context);
-    when(context.getVolumeOperationAllowedPaths()).thenReturn(ALLOWED_PATHS);
     when(resultHandler.getObject(0)).thenReturn("REMOVE");
     when(resultHandler.getObject(1)).thenReturn(PRESIGNED_URL);
     when(resultHandler.getObject(3)).thenReturn(null);
@@ -604,6 +603,7 @@ public class VolumeOperationResultTest {
       when(mockHttpClient.execute(isA(HttpDelete.class))).thenReturn(httpResponse);
       when(httpResponse.getStatusLine()).thenReturn(mockedStatusLine);
       when(mockedStatusLine.getStatusCode()).thenReturn(200);
+      when(context.getVolumeOperationAllowedPaths()).thenReturn(ALLOWED_PATHS);
     }
 
     when(session.getConnectionContext()).thenReturn(context);
@@ -630,7 +630,7 @@ public class VolumeOperationResultTest {
         fail("Should throw DatabricksSQLException");
       } catch (DatabricksSQLException e) {
         assertEquals(
-            "Volume operation status : ABORTED, Error message: enableVolumeOperations property mandatory for remove operation on Volume",
+            "Volume operation status : ABORTED, Error message: enableVolumeOperations property or Volume ingestion paths required for remove operation on Volume",
             e.getMessage());
       }
     }
