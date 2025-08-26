@@ -11,6 +11,6 @@
 ### Updated
 
 ### Fixed
-- Fixed `DBFSVolumeClient` delete to consider file path validation deduced from `VolumeOperationAllowedLocalPaths` property.
+-
 ---
 *Note: When making changes, please add your change under the appropriate section with a brief description.* 
