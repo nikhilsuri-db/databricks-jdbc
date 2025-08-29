@@ -8,7 +8,7 @@ information.
 
 ## Prerequisites
 
-Databricks JDBC is compatible with Java 11 and higher. CI testing runs on Java versions 11, 17, and 21.
+TEST Databricks JDBC is compatible with Java 11 and higher. CI testing runs on Java versions 11, 17, and 21.
 
 ## Installation
 

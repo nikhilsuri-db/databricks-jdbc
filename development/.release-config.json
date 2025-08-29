@@ -1,0 +1,5 @@
+{
+  "freeze": false,
+  "allow_list": ["feature/test", "bugfix/critical"],
+  "reason": "Quarterly release freeze"
+}
