@@ -5,6 +5,7 @@ import com.databricks.jdbc.exception.DatabricksDriverException;
 import com.databricks.jdbc.log.JdbcLogger;
 import com.databricks.jdbc.log.JdbcLoggerFactory;
 import com.databricks.jdbc.model.telemetry.enums.DatabricksDriverErrorCode;
+import com.fasterxml.jackson.databind.JsonNode;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.util.ArrayList;
@@ -125,6 +126,9 @@ public class DatabricksStruct implements Struct {
           return Time.valueOf(value.toString());
         case DatabricksTypeUtil.BINARY:
           return value instanceof byte[] ? value : value.toString().getBytes();
+        case DatabricksTypeUtil.VARIANT:
+          // For VARIANT, preserve JsonNode objects as-is, otherwise convert to string
+          return value instanceof JsonNode ? value : value.toString();
         case DatabricksTypeUtil.STRING:
         default:
           return value.toString();
@@ -185,6 +189,9 @@ public class DatabricksStruct implements Struct {
       if (val == null) {
         // JSON-like null
         sb.append("null");
+      } else if (val instanceof JsonNode) {
+        // VARIANT fields represented as JsonNode - preserve JSON structure without quotes
+        sb.append(val.toString());
       } else if (val instanceof String) {
         // Strings get quoted
         sb.append("\"").append(val).append("\"");
