@@ -30,7 +30,6 @@ jobs:
           # Store the sanitized PR message
           echo "$sanitized_pr_message" > pr_message.txt
           echo "$sanitized_pr_message"
-          
 
       - name: Enforce branch freeze logic
         shell: bash
@@ -44,7 +43,7 @@ jobs:
           pr_message=$(cat pr_message.txt)               
           if echo "$pr_message" | grep -q "OVERRIDE_FREEZE=true"; then
             echo "✅ OVERRIDE_FREEZE=true found in PR message. Freeze override permitted."
-          exit 0
+            exit 0
           fi
           
         # 2. Proceed with freeze checks  
