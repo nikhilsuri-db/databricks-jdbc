@@ -40,28 +40,26 @@ jobs:
           CONFIG_FILE="development/.release-freeze.json"
 
           # 1. Check for explicit override flag in PR message
-          pr_message=$(cat pr_message.txt)               
+          pr_message=$(cat pr_message.txt)
           if echo "$pr_message" | grep -q "OVERRIDE_FREEZE=true"; then
             echo "✅ OVERRIDE_FREEZE=true found in PR message. Freeze override permitted."
             exit 0
           fi
-          
-          # 2. Proceed with freeze checks  
+
+          # 2. Proceed with freeze checks
           if [[ ! -f "$CONFIG_FILE" ]]; then
             echo "✅ No release config file - passing check."
             exit 0
           fi
 
-          
           FREEZE=$(jq '.freeze' "$CONFIG_FILE")
 
           if [[ "$FREEZE" != "true" ]]; then
             echo "✅ Freeze is off - passing check."
             exit 0
           fi
-        
-        
-        # 3. Freeze is ON and no override flag. Block PR.
+
+          # 3. Freeze is ON and no override flag. Block PR.
           echo "Release freeze is ACTIVE! Branch '${PR_BRANCH}' is NOT permitted to merge."
           echo "To override, add OVERRIDE_FREEZE=true to your PR description."
           exit 1
