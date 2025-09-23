@@ -134,6 +134,7 @@ public class ComplexDataTypeParser {
         return JsonUtil.getMapper().readTree(jsonText);
       } catch (Exception e) {
         // If parsing fails, return the original text
+        LOGGER.error(e, "Failed to parse VARIANT: {}", jsonText);
         return jsonText;
       }
     }

@@ -81,6 +81,9 @@ public class DatabricksStruct implements Struct {
         } else {
           throwConversionException("Map for MAP", value);
         }
+      } else if (fieldType.startsWith(DatabricksTypeUtil.VARIANT)) {
+        // For VARIANT, preserve JsonNode objects as-is, otherwise convert to string
+        convertedAttributes[index] = value;
       } else {
         convertedAttributes[index] = convertSimpleValue(value, fieldType);
       }
@@ -126,9 +129,6 @@ public class DatabricksStruct implements Struct {
           return Time.valueOf(value.toString());
         case DatabricksTypeUtil.BINARY:
           return value instanceof byte[] ? value : value.toString().getBytes();
-        case DatabricksTypeUtil.VARIANT:
-          // For VARIANT, preserve JsonNode objects as-is, otherwise convert to string
-          return value instanceof JsonNode ? value : value.toString();
         case DatabricksTypeUtil.STRING:
         default:
           return value.toString();
