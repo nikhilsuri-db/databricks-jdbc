@@ -2,6 +2,18 @@
 
 ## [v3.0.1] - 2025-10-13
 ### Added
+- Added `enableMultipleCatalogSupport` connection parameter to control catalog metadata behavior.
+
+### Updated
+
+### Fixed
+- Fixed complex data type conversion issues by improving StringConverter to handle Databricks complex objects (arrays/maps/structs), JDBC arrays/structs, and generic collections.
+- Fixed ComplexDataTypeParser to correctly parse ISO timestamps with T separators and timezone offsets, preventing Arrow ingestion failures.
+---
+
+## [v1.0.11-oss] - 2025-10-06
+
+### Added
 - Enabled direct results by default in SEA mode to improve latency for short and small queries.
 
 ### Updated
@@ -13,7 +25,7 @@
 - Fixed state leaking issue in thrift client.
 - Fixed timestamp values returning only milliseconds instead of the full nanosecond precision.
 - Fixed Statement.getUpdateCount() for DML queries.
-
+---
 
 ## [v1.0.10-oss] - 2025-09-18
 ### Added
