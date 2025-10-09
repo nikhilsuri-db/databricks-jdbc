@@ -20,7 +20,7 @@ Add the following dependency to your `pom.xml`:
 <dependency>
   <groupId>com.databricks</groupId>
   <artifactId>databricks-jdbc</artifactId>
-  <version>1.0.10-oss</version>
+  <version>3.0.1</version>
 </dependency>
 ```
 
@@ -33,7 +33,7 @@ For applications requiring explicit dependency management, use the thin JAR vari
 <dependency>
   <groupId>com.databricks</groupId>
   <artifactId>databricks-jdbc-thin</artifactId>
-  <version>1.0.10-oss</version>
+  <version>3.0.1</version>
 </dependency>
 ```
 
