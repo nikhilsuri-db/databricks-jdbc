@@ -47,13 +47,13 @@ import java.util.stream.Collectors;
 import org.apache.hc.client5.http.async.methods.*;
 import org.apache.hc.core5.concurrent.FutureCallback;
 import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.io.entity.InputStreamEntity;
 import org.apache.hc.core5.http.nio.AsyncEntityProducer;
 import org.apache.hc.core5.http.nio.AsyncRequestProducer;
 import org.apache.hc.core5.http.nio.AsyncResponseConsumer;
 import org.apache.hc.core5.http.nio.entity.AsyncEntityProducers;
 import org.apache.hc.core5.http.nio.support.AsyncRequestBuilder;
-import org.apache.http.HttpEntity;
-import org.apache.http.entity.InputStreamEntity;
 
 /** Implementation of Volume Client that directly calls SQL Exec API for the Volume Operations */
 public class DBFSVolumeClient implements IDatabricksVolumeClient, Closeable {
@@ -416,7 +416,8 @@ public class DBFSVolumeClient implements IDatabricksVolumeClient, Closeable {
       CreateUploadUrlResponse response =
           getCreateUploadUrlResponse(getObjectFullPath(catalog, schema, volume, objectPath));
 
-      InputStreamEntity inputStreamEntity = new InputStreamEntity(inputStream, contentLength);
+      InputStreamEntity inputStreamEntity =
+          new InputStreamEntity(inputStream, org.apache.hc.core5.http.ContentType.DEFAULT_BINARY);
       // Uploading the object to the Pre Signed Url
       VolumeOperationProcessor volumeOperationProcessor =
           VolumeOperationProcessor.Builder.createBuilder()
@@ -582,7 +583,8 @@ public class DBFSVolumeClient implements IDatabricksVolumeClient, Closeable {
   }
 
   public InputStreamEntity getVolumeOperationInputStream() {
-    return new InputStreamEntity(this.volumeInputStream, this.volumeStreamContentLength);
+    return new InputStreamEntity(
+        this.volumeInputStream, org.apache.hc.core5.http.ContentType.DEFAULT_BINARY);
   }
 
   @Override

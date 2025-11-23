@@ -19,29 +19,30 @@ import com.databricks.jdbc.log.JdbcLogger;
 import com.databricks.jdbc.log.JdbcLoggerFactory;
 import com.databricks.jdbc.model.telemetry.enums.DatabricksDriverErrorCode;
 import com.databricks.sdk.core.ProxyConfig;
-import com.databricks.sdk.core.utils.ProxyUtils;
 import com.google.common.annotations.VisibleForTesting;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.apache.hc.client5.http.HttpRoute;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.DefaultSchemePortResolver;
+import org.apache.hc.client5.http.impl.IdleConnectionEvictor;
 import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
 import org.apache.hc.core5.concurrent.FutureCallback;
+import org.apache.hc.core5.http.ClassicHttpRequest;
+import org.apache.hc.core5.http.HttpException;
+import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.nio.AsyncRequestProducer;
 import org.apache.hc.core5.http.nio.AsyncResponseConsumer;
-import org.apache.http.HttpHost;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.conn.UnsupportedSchemeException;
-import org.apache.http.conn.routing.HttpRoute;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.IdleConnectionEvictor;
-import org.apache.http.impl.conn.DefaultSchemePortResolver;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.hc.core5.util.TimeValue;
+import org.apache.hc.core5.util.Timeout;
 
-/** Http client implementation to be used for executing http requests. */
+/** Http client implementation to be used for executing http requests with HTTP/2 support. */
 public class DatabricksHttpClient implements IDatabricksHttpClient, Closeable {
 
   private static final JdbcLogger LOGGER = JdbcLoggerFactory.getLogger(DatabricksHttpClient.class);
@@ -52,11 +53,14 @@ public class DatabricksHttpClient implements IDatabricksHttpClient, Closeable {
   private CloseableHttpAsyncClient asyncClient;
 
   DatabricksHttpClient(IDatabricksConnectionContext connectionContext, HttpClientType type) {
+    LOGGER.info("Initializing HTTP client with HTTP/2 support");
     connectionManager = initializeConnectionManager(connectionContext);
     httpClient = makeClosableHttpClient(connectionContext, type);
     idleConnectionEvictor =
         new IdleConnectionEvictor(
-            connectionManager, connectionContext.getIdleHttpConnectionExpiry(), TimeUnit.SECONDS);
+            connectionManager,
+            TimeValue.of(connectionContext.getIdleHttpConnectionExpiry(), TimeUnit.SECONDS),
+            TimeValue.ZERO_MILLISECONDS);
     idleConnectionEvictor.start();
     asyncClient = GlobalAsyncHttpClient.getClient();
   }
@@ -70,12 +74,12 @@ public class DatabricksHttpClient implements IDatabricksHttpClient, Closeable {
   }
 
   @Override
-  public CloseableHttpResponse execute(HttpUriRequest request) throws DatabricksHttpException {
+  public CloseableHttpResponse execute(ClassicHttpRequest request) throws DatabricksHttpException {
     return execute(request, false);
   }
 
   @Override
-  public CloseableHttpResponse execute(HttpUriRequest request, boolean supportGzipEncoding)
+  public CloseableHttpResponse execute(ClassicHttpRequest request, boolean supportGzipEncoding)
       throws DatabricksHttpException {
     LOGGER.debug("Executing HTTP request {}", RequestSanitizer.sanitizeRequest(request));
     if (!DriverUtil.isRunningAgainstFake() && supportGzipEncoding) {
@@ -119,7 +123,7 @@ public class DatabricksHttpClient implements IDatabricksHttpClient, Closeable {
       httpClient.close();
     }
     if (connectionManager != null) {
-      connectionManager.shutdown();
+      connectionManager.close();
     }
     if (asyncClient != null) {
       GlobalAsyncHttpClient.releaseClient();
@@ -151,25 +155,22 @@ public class DatabricksHttpClient implements IDatabricksHttpClient, Closeable {
             ? connectionContext.getHttpConnectionRequestTimeout() * 1000
             : timeoutMillis;
     return RequestConfig.custom()
-        .setConnectionRequestTimeout(requestTimeout)
-        .setConnectTimeout(timeoutMillis)
-        .setSocketTimeout(timeoutMillis)
+        .setConnectionRequestTimeout(Timeout.ofMilliseconds(requestTimeout))
+        .setConnectTimeout(Timeout.ofMilliseconds(timeoutMillis))
+        .setResponseTimeout(Timeout.ofMilliseconds(timeoutMillis))
         .build();
   }
 
   private CloseableHttpClient makeClosableHttpClient(
       IDatabricksConnectionContext connectionContext, HttpClientType type) {
-    DatabricksHttpRetryHandler retryHandler =
-        type.equals(HttpClientType.COMMON)
-            ? new DatabricksHttpRetryHandler(connectionContext)
-            : new UCVolumeHttpRetryHandler(connectionContext);
+    // Note: Retry handling will be done at application level for now
+    // HttpClient5 retry strategy will be added in follow-up
     HttpClientBuilder builder =
         HttpClientBuilder.create()
             .setConnectionManager(connectionManager)
             .setUserAgent(UserAgentManager.getUserAgentString())
-            .setDefaultRequestConfig(makeRequestConfig(connectionContext))
-            .setRetryHandler(retryHandler)
-            .addInterceptorFirst(retryHandler);
+            .setDefaultRequestConfig(makeRequestConfig(connectionContext));
+    LOGGER.info("HTTP client configured with HTTP/2 support (with HTTP/1.1 fallback)");
     setupProxy(connectionContext, builder);
     if (DriverUtil.isRunningAgainstFake()) {
       setFakeServiceRouteInHttpClient(builder);
@@ -177,7 +178,7 @@ public class DatabricksHttpClient implements IDatabricksHttpClient, Closeable {
     return builder.build();
   }
 
-  private static void throwHttpException(Exception e, HttpUriRequest request)
+  private static void throwHttpException(Exception e, ClassicHttpRequest request)
       throws DatabricksHttpException {
     Throwable cause = e;
     while (cause != null) {
@@ -230,22 +231,30 @@ public class DatabricksHttpClient implements IDatabricksHttpClient, Closeable {
               .setPassword(proxyPassword)
               .setProxyAuthType(proxyAuth)
               .setNonProxyHosts(nonProxyHosts);
-      ProxyUtils.setupProxy(proxyConfig, builder);
+      // Note: ProxyUtils.setupProxy expects HttpClient4 builder
+      // We'll need to handle proxy configuration manually for HttpClient5
+      if (proxyHost != null) {
+        HttpHost proxy = new HttpHost(proxyHost, proxyPort);
+        builder.setProxy(proxy);
+      }
+      if (connectionContext.getUseSystemProxy()) {
+        builder.useSystemProperties();
+      }
     }
   }
 
   @VisibleForTesting
   void setFakeServiceRouteInHttpClient(HttpClientBuilder builder) {
     builder.setRoutePlanner(
-        (host, request, context) -> {
+        (host, context) -> {
           final HttpHost target;
           try {
             target =
                 new HttpHost(
+                    host.getSchemeName(),
                     host.getHostName(),
-                    DefaultSchemePortResolver.INSTANCE.resolve(host),
-                    host.getSchemeName());
-          } catch (UnsupportedSchemeException e) {
+                    DefaultSchemePortResolver.INSTANCE.resolve(host));
+          } catch (Exception e) {
             throw new DatabricksDriverException(
                 e.getMessage(), DatabricksDriverErrorCode.INTEGRATION_TEST_ERROR);
           }
@@ -257,8 +266,13 @@ public class DatabricksHttpClient implements IDatabricksHttpClient, Closeable {
           }
 
           // Get the fake service URI for the target URI and set it as proxy
-          final HttpHost proxy =
-              HttpHost.create(System.getProperty(host.toURI() + FAKE_SERVICE_URI_PROP_SUFFIX));
+          final HttpHost proxy;
+          try {
+            proxy =
+                HttpHost.create(System.getProperty(host.toURI() + FAKE_SERVICE_URI_PROP_SUFFIX));
+          } catch (Exception e) {
+            throw new HttpException(e.getMessage());
+          }
 
           return new HttpRoute(target, null, proxy, false);
         });

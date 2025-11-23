@@ -24,8 +24,8 @@ import com.google.common.base.Strings;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.http.HttpEntity;
-import org.apache.http.entity.InputStreamEntity;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.io.entity.InputStreamEntity;
 
 /** Class to handle the result of a volume operation */
 public class VolumeOperationResult implements IExecutionResult {
@@ -226,7 +226,8 @@ public class VolumeOperationResult implements IExecutionResult {
   }
 
   public InputStreamEntity getVolumeOperationInputStream() {
-    return new InputStreamEntity(this.volumeInputStream, this.volumeStreamContentLength);
+    return new InputStreamEntity(
+        this.volumeInputStream, org.apache.hc.core5.http.ContentType.DEFAULT_BINARY);
   }
 
   @Override

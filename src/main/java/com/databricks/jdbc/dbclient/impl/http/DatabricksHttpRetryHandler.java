@@ -9,18 +9,15 @@ import com.databricks.jdbc.log.JdbcLoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
 import java.util.Objects;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpResponseInterceptor;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.HttpRequestRetryHandler;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.protocol.HttpContext;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.classic.methods.HttpPut;
+import org.apache.hc.client5.http.protocol.HttpClientContext;
+import org.apache.hc.core5.http.HttpResponse;
+import org.apache.hc.core5.http.HttpStatus;
+import org.apache.hc.core5.http.protocol.HttpContext;
 
-public class DatabricksHttpRetryHandler
-    implements HttpResponseInterceptor, HttpRequestRetryHandler {
+public class DatabricksHttpRetryHandler {
   private static final JdbcLogger LOGGER =
       JdbcLoggerFactory.getLogger(DatabricksHttpRetryHandler.class);
 
@@ -64,9 +61,8 @@ public class DatabricksHttpRetryHandler
    * @see #initializeRetryAccumulatedTimeIfNotExist(HttpContext)
    * @see DatabricksRetryHandlerException
    */
-  @Override
   public void process(HttpResponse httpResponse, HttpContext httpContext) throws IOException {
-    int statusCode = httpResponse.getStatusLine().getStatusCode();
+    int statusCode = httpResponse.getCode();
     if (!isStatusCodeRetryable(statusCode)) {
       // If the status code is not retryable, then no processing is needed for retry
       return;
@@ -87,7 +83,7 @@ public class DatabricksHttpRetryHandler
     if (httpResponse.containsHeader(THRIFT_ERROR_MESSAGE_HEADER)) {
       errorReason = httpResponse.getFirstHeader(THRIFT_ERROR_MESSAGE_HEADER).getValue();
     } else {
-      errorReason = httpResponse.getStatusLine().getReasonPhrase();
+      errorReason = httpResponse.getReasonPhrase();
     }
     String errorMessage =
         String.format(
@@ -124,7 +120,6 @@ public class DatabricksHttpRetryHandler
    * @see #calculateDelayInMillis(int, int, int)
    * @see #doSleepForDelay(long)
    */
-  @Override
   public boolean retryRequest(IOException exception, int executionCount, HttpContext context) {
     // check if retrying this status code is supported
     int statusCode = getErrorCodeFromException(exception);
@@ -176,8 +171,7 @@ public class DatabricksHttpRetryHandler
 
     // check if request method is retryable
     boolean isRequestMethodRetryable =
-        isRequestMethodRetryable(
-            ((HttpClientContext) context).getRequest().getRequestLine().getMethod());
+        isRequestMethodRetryable(((HttpClientContext) context).getRequest().getMethod());
     if (!isRequestMethodRetryable) {
       return false;
     }

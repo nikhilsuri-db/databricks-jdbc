@@ -16,11 +16,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Map;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.util.EntityUtils;
 
 public class TelemetryPushClient implements ITelemetryPushClient {
 
@@ -61,8 +61,7 @@ public class TelemetryPushClient implements ITelemetryPushClient {
     try (CloseableHttpResponse response = httpClient.execute(post)) {
       // TODO: check response and add retry for partial failures
       if (!HttpUtil.isSuccessfulHttpResponse(response)) {
-        LOGGER.trace(
-            "Failed to push telemetry logs with error response: {}", response.getStatusLine());
+        LOGGER.trace("Failed to push telemetry logs with error response: {}", response.getCode());
         return;
       }
       TelemetryResponse telResponse =

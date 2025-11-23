@@ -15,11 +15,11 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.http.HttpEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.ByteArrayEntity;
-import org.apache.http.util.EntityUtils;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.io.entity.ByteArrayEntity;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.thrift.TConfiguration;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
@@ -121,7 +121,8 @@ public class DatabricksHttpTTransport extends TTransport {
       requestBuffer.reset();
     }
     // Set the request entity
-    request.setEntity(new ByteArrayEntity(requestPayload));
+    request.setEntity(
+        new ByteArrayEntity(requestPayload, org.apache.hc.core5.http.ContentType.DEFAULT_BINARY));
 
     // Execute the request and handle the response
     long httpRequestStartTime = System.currentTimeMillis();

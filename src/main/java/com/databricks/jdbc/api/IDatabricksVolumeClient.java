@@ -5,7 +5,7 @@ import com.databricks.jdbc.model.client.filesystem.VolumePutResult;
 import java.io.InputStream;
 import java.sql.SQLException;
 import java.util.List;
-import org.apache.http.entity.InputStreamEntity;
+import org.apache.hc.core5.http.io.entity.InputStreamEntity;
 
 /**
  * Interface for interacting with Databricks Unity Catalog (UC) Volumes. Provides methods for

@@ -27,12 +27,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.entity.UrlEncodedFormEntity;
+import org.apache.hc.core5.http.message.BasicNameValuePair;
 import org.apache.http.HttpHeaders;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.message.BasicNameValuePair;
 
 /**
  * Implementation of the Credential Provider that exchanges the third party access token for a
@@ -215,7 +214,8 @@ public class DatabricksTokenFederationProvider implements CredentialsProvider, T
                   .collect(Collectors.toList()),
               StandardCharsets.UTF_8));
       headers.forEach(postRequest::setHeader);
-      HttpResponse response = hc.execute(postRequest);
+      org.apache.hc.client5.http.impl.classic.CloseableHttpResponse response =
+          (org.apache.hc.client5.http.impl.classic.CloseableHttpResponse) hc.execute(postRequest);
       OAuthResponse resp =
           JsonUtil.getMapper().readValue(response.getEntity().getContent(), OAuthResponse.class);
       return createToken(resp.getAccessToken(), resp.getTokenType());

@@ -15,8 +15,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpGet;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.http.client.utils.URIBuilder;
 
 /**
@@ -137,7 +136,8 @@ public class AzureMSICredentials implements TokenSource {
       HttpGet getRequest = new HttpGet(uriBuilder.build());
       headers.forEach(getRequest::setHeader);
       LOGGER.debug("Executing GET request to retrieve Azure MSI token");
-      HttpResponse response = hc.execute(getRequest);
+      org.apache.hc.client5.http.impl.classic.CloseableHttpResponse response =
+          (org.apache.hc.client5.http.impl.classic.CloseableHttpResponse) hc.execute(getRequest);
       OAuthResponse resp =
           JsonUtil.getMapper().readValue(response.getEntity().getContent(), OAuthResponse.class);
       Instant expiry = Instant.now().plus(resp.getExpiresIn(), ChronoUnit.SECONDS);

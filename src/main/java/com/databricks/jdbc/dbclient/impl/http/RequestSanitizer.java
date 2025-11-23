@@ -3,15 +3,15 @@ package com.databricks.jdbc.dbclient.impl.http;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
-import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.hc.core5.http.ClassicHttpRequest;
 
 public class RequestSanitizer {
   private static final List<String> SENSITIVE_QUERY_PARAMS =
       List.of("X-Amz-Security-Token", "X-Amz-Signature", "X-Amz-Credential");
 
-  public static String sanitizeRequest(HttpUriRequest request) {
+  public static String sanitizeRequest(ClassicHttpRequest request) {
     try {
-      URI uri = new URI(request.getURI().toString());
+      URI uri = request.getUri();
       String sanitizedQuery = sanitizeQuery(uri.getRawQuery());
       URI sanitizedUri =
           new URI(

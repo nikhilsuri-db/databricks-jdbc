@@ -6,7 +6,7 @@ import com.databricks.jdbc.log.JdbcLoggerFactory;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
-import org.apache.http.HttpResponse;
+import org.apache.hc.core5.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.protocol.HttpContext;
 
@@ -23,14 +23,13 @@ public class UCVolumeHttpRetryHandler extends DatabricksHttpRetryHandler {
   }
 
   /**
-   * {@inheritDoc}
+   * Processes the HTTP response for UC Volume operations.
    *
    * <p>Specifically this handles retryable http codes and setting of retry start time for UC Volume
    * operations
    */
-  @Override
   public void process(HttpResponse httpResponse, HttpContext httpContext) throws IOException {
-    int statusCode = httpResponse.getStatusLine().getStatusCode();
+    int statusCode = httpResponse.getCode();
     if (!isStatusCodeRetryable(statusCode)) {
       // If the status code is not retryable, then no processing is needed for retry
       return;
@@ -53,12 +52,11 @@ public class UCVolumeHttpRetryHandler extends DatabricksHttpRetryHandler {
   }
 
   /**
-   * {@inheritDoc}
+   * Determines retry strategy for HTTP requests for UC Volume operations.
    *
    * <p>Specifically, this method implements retry strategy for HTTP requests for UC Volume
    * operations
    */
-  @Override
   public boolean retryRequest(IOException exception, int executionCount, HttpContext context) {
     // check if retrying this status code is supported
     int statusCode = getErrorCodeFromException(exception);

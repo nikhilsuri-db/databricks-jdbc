@@ -19,12 +19,11 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.net.ssl.*;
-import org.apache.http.config.Registry;
-import org.apache.http.config.RegistryBuilder;
-import org.apache.http.conn.socket.ConnectionSocketFactory;
-import org.apache.http.conn.socket.PlainConnectionSocketFactory;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.hc.client5.http.config.ConnectionConfig;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
+import org.apache.hc.core5.util.Timeout;
 
 /**
  * Utility class for configuring SSL/TLS for Databricks JDBC connections.
@@ -86,56 +85,69 @@ public class ConfiguratorUtils {
         && !connectionContext.acceptUndeterminedCertificateRevocation()
         && !connectionContext.useSystemTrustStore()
         && !connectionContext.allowSelfSignedCerts()) {
-      return new PoolingHttpClientConnectionManager();
+      return PoolingHttpClientConnectionManagerBuilder.create()
+          .setDefaultConnectionConfig(
+              ConnectionConfig.custom().setConnectTimeout(Timeout.ofSeconds(30)).build())
+          .build();
     }
 
     // For test environments, use a trust-all socket factory
     if (isJDBCTestEnv()) {
       LOGGER.info("Using trust-all socket factory for JDBC test environment");
-      return new PoolingHttpClientConnectionManager(
-          SocketFactoryUtil.getTrustAllSocketFactoryRegistry());
+      return PoolingHttpClientConnectionManagerBuilder.create()
+          .setSSLSocketFactory(SocketFactoryUtil.getTrustAllSSLConnectionSocketFactory())
+          .setDefaultConnectionConfig(
+              ConnectionConfig.custom().setConnectTimeout(Timeout.ofSeconds(30)).build())
+          .build();
     }
 
     // If self-signed certificates are allowed, use a trust-all socket factory
     if (connectionContext.allowSelfSignedCerts()) {
       LOGGER.warn(
           "Self-signed certificates are allowed. Please only use this parameter (AllowSelfSignedCerts) when you're sure of what you're doing. This is not recommended for production use.");
-      return new PoolingHttpClientConnectionManager(
-          SocketFactoryUtil.getTrustAllSocketFactoryRegistry());
+      return PoolingHttpClientConnectionManagerBuilder.create()
+          .setSSLSocketFactory(SocketFactoryUtil.getTrustAllSSLConnectionSocketFactory())
+          .setDefaultConnectionConfig(
+              ConnectionConfig.custom().setConnectTimeout(Timeout.ofSeconds(30)).build())
+          .build();
     }
 
-    // For standard SSL configuration, create a custom socket factory registry
-    Registry<ConnectionSocketFactory> socketFactoryRegistry =
-        createConnectionSocketFactoryRegistry(connectionContext);
-    return new PoolingHttpClientConnectionManager(socketFactoryRegistry);
+    // For standard SSL configuration, create a custom socket factory
+    SSLConnectionSocketFactory sslSocketFactory =
+        createSSLConnectionSocketFactory(connectionContext);
+    return PoolingHttpClientConnectionManagerBuilder.create()
+        .setSSLSocketFactory(sslSocketFactory)
+        .setDefaultConnectionConfig(
+            ConnectionConfig.custom().setConnectTimeout(Timeout.ofSeconds(30)).build())
+        .build();
   }
 
   /**
-   * Creates a registry of connection socket factories based on the connection context.
+   * Creates an SSL connection socket factory based on the connection context.
    *
    * @param connectionContext The connection context to use for configuration.
-   * @return A configured Registry of ConnectionSocketFactory.
+   * @return A configured SSLConnectionSocketFactory.
    * @throws DatabricksSSLException If there is an error during configuration.
    */
-  public static Registry<ConnectionSocketFactory> createConnectionSocketFactoryRegistry(
+  public static SSLConnectionSocketFactory createSSLConnectionSocketFactory(
       IDatabricksConnectionContext connectionContext) throws DatabricksSSLException {
 
     // First check if a custom trust store is specified
     if (connectionContext.getSSLTrustStore() != null) {
-      return createRegistryWithCustomTrustStore(connectionContext);
+      return createSSLFactoryWithCustomTrustStore(connectionContext);
     } else {
-      return createRegistryWithSystemOrDefaultTrustStore(connectionContext);
+      return createSSLFactoryWithSystemOrDefaultTrustStore(connectionContext);
     }
   }
 
   /**
-   * Creates a socket factory registry using a custom trust store.
+   * Creates an SSL socket factory using a custom trust store.
    *
    * @param connectionContext The connection context containing the trust store information.
-   * @return A registry of connection socket factories.
+   * @return An SSLConnectionSocketFactory.
    * @throws DatabricksSSLException If there is an error setting up the trust store.
    */
-  private static Registry<ConnectionSocketFactory> createRegistryWithCustomTrustStore(
+  private static SSLConnectionSocketFactory createSSLFactoryWithCustomTrustStore(
       IDatabricksConnectionContext connectionContext) throws DatabricksSSLException {
 
     try {
@@ -157,7 +169,7 @@ public class ConfiguratorUtils {
 
       LOGGER.info("Using custom trust store: " + connectionContext.getSSLTrustStore());
 
-      return createRegistryFromTrustAnchors(
+      return createSSLFactoryFromTrustAnchors(
           trustAnchors,
           connectionContext,
           "custom trust store: " + connectionContext.getSSLTrustStore());
@@ -169,13 +181,13 @@ public class ConfiguratorUtils {
   }
 
   /**
-   * Creates a socket factory registry using either the system property trust store or JDK default.
+   * Creates an SSL socket factory using either the system property trust store or JDK default.
    *
    * @param connectionContext The connection context for configuration.
-   * @return A registry of connection socket factories.
+   * @return An SSLConnectionSocketFactory.
    * @throws DatabricksSSLException If there is an error during setup.
    */
-  private static Registry<ConnectionSocketFactory> createRegistryWithSystemOrDefaultTrustStore(
+  private static SSLConnectionSocketFactory createSSLFactoryWithSystemOrDefaultTrustStore(
       IDatabricksConnectionContext connectionContext) throws DatabricksSSLException {
 
     // Check if we should use the system property trust store based on useSystemTrustStore
@@ -187,23 +199,23 @@ public class ConfiguratorUtils {
 
     // If system property is set and useSystemTrustStore=true, use that trust store
     if (sysTrustStore != null && !sysTrustStore.isEmpty()) {
-      return createRegistryWithSystemPropertyTrustStore(connectionContext, sysTrustStore);
+      return createSSLFactoryWithSystemPropertyTrustStore(connectionContext, sysTrustStore);
     }
     // No system property set or useSystemTrustStore=false, use JDK's default trust store (cacerts)
     else {
-      return createRegistryWithJdkDefaultTrustStore(connectionContext);
+      return createSSLFactoryWithJdkDefaultTrustStore(connectionContext);
     }
   }
 
   /**
-   * Creates a socket factory registry using the trust store specified by system property.
+   * Creates an SSL socket factory using the trust store specified by system property.
    *
    * @param connectionContext The connection context for configuration.
    * @param sysTrustStore The path to the system property trust store.
-   * @return A registry of connection socket factories.
+   * @return An SSLConnectionSocketFactory.
    * @throws DatabricksSSLException If there is an error during setup.
    */
-  private static Registry<ConnectionSocketFactory> createRegistryWithSystemPropertyTrustStore(
+  private static SSLConnectionSocketFactory createSSLFactoryWithSystemPropertyTrustStore(
       IDatabricksConnectionContext connectionContext, String sysTrustStore)
       throws DatabricksSSLException {
 
@@ -235,7 +247,7 @@ public class ConfiguratorUtils {
 
       // Get trust anchors and create trust managers
       Set<TrustAnchor> trustAnchors = getTrustAnchorsFromTrustStore(trustStore);
-      return createRegistryFromTrustAnchors(
+      return createSSLFactoryFromTrustAnchors(
           trustAnchors, connectionContext, "system property trust store: " + sysTrustStore);
     } catch (DatabricksSSLException
         | KeyStoreException
@@ -248,13 +260,13 @@ public class ConfiguratorUtils {
   }
 
   /**
-   * Creates a socket factory registry using the JDK's default trust store (cacerts).
+   * Creates an SSL socket factory using the JDK's default trust store (cacerts).
    *
    * @param connectionContext The connection context for configuration.
-   * @return A registry of connection socket factories.
+   * @return An SSLConnectionSocketFactory.
    * @throws DatabricksSSLException If there is an error during setup.
    */
-  private static Registry<ConnectionSocketFactory> createRegistryWithJdkDefaultTrustStore(
+  private static SSLConnectionSocketFactory createSSLFactoryWithJdkDefaultTrustStore(
       IDatabricksConnectionContext connectionContext) throws DatabricksSSLException {
 
     try {
@@ -267,7 +279,7 @@ public class ConfiguratorUtils {
       }
 
       Set<TrustAnchor> systemTrustAnchors = getTrustAnchorsFromTrustStore(null);
-      return createRegistryFromTrustAnchors(
+      return createSSLFactoryFromTrustAnchors(
           systemTrustAnchors, connectionContext, "JDK default trust store (cacerts)");
     } catch (DatabricksSSLException e) {
       handleError("Error while setting up JDK default trust store", e);
@@ -276,15 +288,15 @@ public class ConfiguratorUtils {
   }
 
   /**
-   * Creates a socket factory registry from trust anchors and client keystore if available.
+   * Creates an SSL socket factory from trust anchors and client keystore if available.
    *
    * @param trustAnchors The trust anchors for server certificate validation.
    * @param connectionContext The connection context for configuration.
    * @param sourceDescription A description of the trust store source for logging.
-   * @return A registry of connection socket factories.
+   * @return An SSLConnectionSocketFactory.
    * @throws DatabricksSSLException If there is an error during setup.
    */
-  private static Registry<ConnectionSocketFactory> createRegistryFromTrustAnchors(
+  private static SSLConnectionSocketFactory createSSLFactoryFromTrustAnchors(
       Set<TrustAnchor> trustAnchors,
       IDatabricksConnectionContext connectionContext,
       String sourceDescription)
@@ -318,10 +330,10 @@ public class ConfiguratorUtils {
         // Create key managers for client certificate authentication
         KeyManager[] keyManagers = createKeyManagers(keyStore, keyStorePassword);
 
-        return createSocketFactoryRegistry(trustManagers, keyManagers);
+        return createSSLSocketFactory(trustManagers, keyManagers);
       } else {
         LOGGER.debug("No keystore path specified in connection url");
-        return createSocketFactoryRegistry(trustManagers);
+        return createSSLSocketFactory(trustManagers);
       }
     } catch (Exception e) {
       handleError("Error setting up SSL socket factory for " + sourceDescription, e);
@@ -330,16 +342,16 @@ public class ConfiguratorUtils {
   }
 
   /**
-   * Creates a socket factory registry with the provided trust managers.
+   * Creates an SSL socket factory with the provided trust managers.
    *
    * @param trustManagers The trust managers to use.
-   * @return A registry of connection socket factories.
+   * @return An SSLConnectionSocketFactory.
    * @throws NoSuchAlgorithmException If there is an error during SSL context creation.
    * @throws KeyManagementException If there is an error during SSL context creation.
    */
-  private static Registry<ConnectionSocketFactory> createSocketFactoryRegistry(
-      TrustManager[] trustManagers) throws NoSuchAlgorithmException, KeyManagementException {
-    return createSocketFactoryRegistry(trustManagers, null);
+  private static SSLConnectionSocketFactory createSSLSocketFactory(TrustManager[] trustManagers)
+      throws NoSuchAlgorithmException, KeyManagementException {
+    return createSSLSocketFactory(trustManagers, null);
   }
 
   /**
@@ -369,26 +381,22 @@ public class ConfiguratorUtils {
   }
 
   /**
-   * Creates a socket factory registry with the provided trust managers and key managers.
+   * Creates an SSL socket factory with the provided trust managers and key managers.
    *
    * @param trustManagers The trust managers to use.
    * @param keyManagers The key managers to use for client authentication.
-   * @return A registry of connection socket factories.
+   * @return An SSLConnectionSocketFactory.
    * @throws NoSuchAlgorithmException If there is an error during SSL context creation.
    * @throws KeyManagementException If there is an error during SSL context creation.
    */
-  private static Registry<ConnectionSocketFactory> createSocketFactoryRegistry(
+  private static SSLConnectionSocketFactory createSSLSocketFactory(
       TrustManager[] trustManagers, KeyManager[] keyManagers)
       throws NoSuchAlgorithmException, KeyManagementException {
 
     SSLContext sslContext = SSLContext.getInstance(DatabricksJdbcConstants.TLS);
     sslContext.init(keyManagers, trustManagers, new SecureRandom());
-    SSLConnectionSocketFactory sslSocketFactory = new SSLConnectionSocketFactory(sslContext);
-
-    return RegistryBuilder.<ConnectionSocketFactory>create()
-        .register(DatabricksJdbcConstants.HTTPS, sslSocketFactory)
-        .register(DatabricksJdbcConstants.HTTP, new PlainConnectionSocketFactory())
-        .build();
+    LOGGER.info("Created SSL socket factory with HTTP/2 support");
+    return new SSLConnectionSocketFactory(sslContext);
   }
 
   /**

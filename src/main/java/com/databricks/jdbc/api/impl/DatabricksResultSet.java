@@ -42,7 +42,7 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
-import org.apache.http.entity.InputStreamEntity;
+import org.apache.hc.core5.http.io.entity.InputStreamEntity;
 
 public class DatabricksResultSet implements IDatabricksResultSet, IDatabricksResultSetInternal {
 

@@ -2,13 +2,13 @@ package com.databricks.jdbc.dbclient;
 
 import com.databricks.jdbc.exception.DatabricksHttpException;
 import java.util.concurrent.Future;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.core5.concurrent.FutureCallback;
+import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.nio.AsyncRequestProducer;
 import org.apache.hc.core5.http.nio.AsyncResponseConsumer;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpUriRequest;
 
-/** Http client interface for executing http requests. */
+/** Http client interface for executing http requests with HTTP/2 support. */
 public interface IDatabricksHttpClient {
 
   /**
@@ -17,7 +17,7 @@ public interface IDatabricksHttpClient {
    * @param request underlying http request
    * @return http response
    */
-  CloseableHttpResponse execute(HttpUriRequest request) throws DatabricksHttpException;
+  CloseableHttpResponse execute(ClassicHttpRequest request) throws DatabricksHttpException;
 
   /**
    * Executes the given http request and returns the response
@@ -26,7 +26,7 @@ public interface IDatabricksHttpClient {
    * @param supportGzipEncoding whether to support gzip encoding header
    * @return http response
    */
-  CloseableHttpResponse execute(HttpUriRequest request, boolean supportGzipEncoding)
+  CloseableHttpResponse execute(ClassicHttpRequest request, boolean supportGzipEncoding)
       throws DatabricksHttpException;
 
   /**

@@ -18,9 +18,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.util.EntityUtils;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
 
 /** Context for dynamic feature flags that control the behavior of the driver. */
 public class DatabricksDriverFeatureFlagsContext {
@@ -106,9 +106,9 @@ public class DatabricksDriverFeatureFlagsContext {
 
   @VisibleForTesting
   void fetchAndSetFlagsFromServer(IDatabricksHttpClient httpClient, HttpGet request)
-      throws DatabricksHttpException, IOException {
+      throws DatabricksHttpException, IOException, org.apache.hc.core5.http.ParseException {
     try (CloseableHttpResponse response = httpClient.execute(request)) {
-      if (response.getStatusLine().getStatusCode() == 200) {
+      if (response.getCode() == 200) {
         String responseBody = EntityUtils.toString(response.getEntity());
         FeatureFlagsResponse featureFlagsResponse =
             JsonUtil.getMapper().readValue(responseBody, FeatureFlagsResponse.class);
@@ -127,7 +127,7 @@ public class DatabricksDriverFeatureFlagsContext {
         LOGGER.trace(
             "Failed to fetch feature flags. Context: {}, Status code: {}",
             connectionContext,
-            response.getStatusLine().getStatusCode());
+            response.getCode());
       }
     }
   }

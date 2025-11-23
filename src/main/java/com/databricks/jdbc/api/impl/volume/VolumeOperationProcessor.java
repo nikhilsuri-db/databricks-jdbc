@@ -11,15 +11,15 @@ import com.google.common.annotations.VisibleForTesting;
 import java.io.*;
 import java.util.*;
 import java.util.function.Consumer;
-import org.apache.http.HttpEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpDelete;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.FileEntity;
-import org.apache.http.entity.InputStreamEntity;
-import org.apache.http.util.EntityUtils;
+import org.apache.hc.client5.http.classic.methods.HttpDelete;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.classic.methods.HttpPut;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.http.io.entity.FileEntity;
+import org.apache.hc.core5.http.io.entity.InputStreamEntity;
 
 /** Executor for volume operations */
 class VolumeOperationProcessor {
@@ -264,8 +264,7 @@ class VolumeOperationProcessor {
           errorMessage =
               String.format(
                   "Failed to fetch content from volume with error code {%s} for input stream and error {%s}",
-                  responseStream.getStatusLine().getStatusCode(),
-                  responseStream.getStatusLine().getReasonPhrase());
+                  responseStream.getCode(), responseStream.getReasonPhrase());
           LOGGER.error(errorMessage);
           closeResponse(responseStream);
           return;
@@ -295,7 +294,7 @@ class VolumeOperationProcessor {
       if (!HttpUtil.isSuccessfulHttpResponse(response)) {
         LOGGER.error(
             "Failed to fetch content from volume with error {%s} for local file {%s}",
-            response.getStatusLine().getStatusCode(), localFilePath);
+            response.getCode(), localFilePath);
         status = VolumeOperationStatus.FAILED;
         errorMessage = "Failed to download file";
         return;
@@ -367,12 +366,10 @@ class VolumeOperationProcessor {
         status = VolumeOperationStatus.SUCCEEDED;
       } else {
         LOGGER.error(
-            "Failed to upload file {%s} with error code: {%s}",
-            localFilePath, response.getStatusLine().getStatusCode());
+            "Failed to upload file {%s} with error code: {%s}", localFilePath, response.getCode());
         // TODO: Add retries
         status = VolumeOperationStatus.FAILED;
-        errorMessage =
-            "Failed to upload file with error code: " + response.getStatusLine().getStatusCode();
+        errorMessage = "Failed to upload file with error code: " + response.getCode();
       }
     } catch (IOException | DatabricksHttpException e) {
       LOGGER.error("Failed to upload file {} with error {}", localFilePath, e.getMessage());
@@ -412,9 +409,7 @@ class VolumeOperationProcessor {
       if (HttpUtil.isSuccessfulHttpResponse(response)) {
         status = VolumeOperationStatus.SUCCEEDED;
       } else {
-        LOGGER.error(
-            "Failed to delete volume with error code: {%s}",
-            response.getStatusLine().getStatusCode());
+        LOGGER.error("Failed to delete volume with error code: {%s}", response.getCode());
         status = VolumeOperationStatus.FAILED;
         errorMessage = "Failed to delete volume";
       }

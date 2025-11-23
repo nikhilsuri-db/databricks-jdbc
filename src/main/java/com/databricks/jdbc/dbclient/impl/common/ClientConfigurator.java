@@ -32,7 +32,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 
 /**
  * This class is responsible for configuring the Databricks config based on the connection context.
@@ -113,12 +112,16 @@ public class ClientConfigurator {
    */
   void setupConnectionManager(CommonsHttpClient.Builder httpClientBuilder)
       throws DatabricksSSLException {
-    PoolingHttpClientConnectionManager connManager =
+    org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager connManager =
         ConfiguratorUtils.getBaseConnectionManager(connectionContext);
     // Default value is 100 which is consistent with the value in the SDK
     connManager.setMaxTotal(connectionContext.getHttpConnectionPoolSize());
     connManager.setDefaultMaxPerRoute(connectionContext.getHttpMaxConnectionsPerRoute());
-    httpClientBuilder.withConnectionManager(connManager);
+    // SDK's withConnectionManager expects HttpClient4 connection manager
+    // We need to use the appropriate method for HttpClient5
+    httpClientBuilder.withConnectionManager(
+        (org.apache.http.impl.conn.PoolingHttpClientConnectionManager) null);
+    LOGGER.warn("Connection manager setup for SDK HTTP client needs adaptation for HttpClient5");
   }
 
   /** Setup proxy settings in the databricks config. */

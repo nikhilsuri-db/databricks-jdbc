@@ -2,8 +2,8 @@ package com.databricks.jdbc.api.impl.volume;
 
 import java.io.IOException;
 import java.io.InputStream;
-import org.apache.http.HttpEntity;
-import org.apache.http.util.EntityUtils;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
 
 public class VolumeInputStream extends InputStream {
 

@@ -8,24 +8,20 @@ import java.security.cert.X509Certificate;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import org.apache.http.config.Registry;
-import org.apache.http.config.RegistryBuilder;
-import org.apache.http.conn.socket.ConnectionSocketFactory;
-import org.apache.http.conn.socket.PlainConnectionSocketFactory;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
+import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
 
 public class SocketFactoryUtil {
   private static final JdbcLogger LOGGER = JdbcLoggerFactory.getLogger(SocketFactoryUtil.class);
 
   /**
-   * Builds a registry of connection socket factories that trusts all SSL certificates. This should
-   * only be used in testing environments or when explicitly configured to allow self-signed
-   * certificates.
+   * Builds an SSL connection socket factory that trusts all SSL certificates with HTTP/2 support.
+   * This should only be used in testing environments or when explicitly configured to allow
+   * self-signed certificates.
    *
-   * @return A registry of connection socket factories.
+   * @return An SSLConnectionSocketFactory configured to trust all certificates.
    */
-  public static Registry<ConnectionSocketFactory> getTrustAllSocketFactoryRegistry() {
+  public static SSLConnectionSocketFactory getTrustAllSSLConnectionSocketFactory() {
     LOGGER.warn(
         "This driver is configured to trust all SSL certificates. This is insecure and should never be used in production.");
     try {
@@ -37,14 +33,11 @@ public class SocketFactoryUtil {
       sslContext.init(null, trustAllCerts, new SecureRandom());
 
       // Use the NoopHostnameVerifier to disable hostname verification
+      // This will support HTTP/2
       SSLConnectionSocketFactory sslSocketFactory =
           new SSLConnectionSocketFactory(sslContext, NoopHostnameVerifier.INSTANCE);
 
-      // Build and return the registry
-      return RegistryBuilder.<ConnectionSocketFactory>create()
-          .register("https", sslSocketFactory)
-          .register("http", new PlainConnectionSocketFactory())
-          .build();
+      return sslSocketFactory;
     } catch (Exception e) {
       String errorMessage = "Error while setting up trust-all SSL context.";
       LOGGER.error(errorMessage, e);

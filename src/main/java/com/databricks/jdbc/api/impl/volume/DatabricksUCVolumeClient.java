@@ -16,7 +16,7 @@ import java.io.InputStream;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.http.entity.InputStreamEntity;
+import org.apache.hc.core5.http.io.entity.InputStreamEntity;
 
 /** Implementation of the VolumeClient that uses SQL query to perform the Volume Operations */
 public class DatabricksUCVolumeClient implements IDatabricksVolumeClient {
@@ -418,7 +418,7 @@ public class DatabricksUCVolumeClient implements IDatabricksVolumeClient {
           statement.unwrap(IDatabricksStatementInternal.class);
       databricksStatement.allowInputStreamForVolumeOperation(true);
       databricksStatement.setInputStreamForUCVolume(
-          new InputStreamEntity(inputStream, contentLength));
+          new InputStreamEntity(inputStream, org.apache.hc.core5.http.ContentType.DEFAULT_BINARY));
 
       try (ResultSet resultSet = statement.executeQuery(putObjectQueryForInputStream)) {
         LOGGER.info("PUT query executed successfully");
