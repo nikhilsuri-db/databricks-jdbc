@@ -235,4 +235,323 @@ class CommandBuilderTest {
 
     assertThrows(DatabricksValidationException.class, () -> builder.getSQLString(mockCommand));
   }
+
+  @Nested
+  @DisplayName("Tests for LIST_COLUMNS command")
+  class ListColumnsTests {
+
+    @Test
+    @DisplayName("Should generate correct SQL for fetching columns")
+    void shouldGenerateCorrectSqlForColumns() throws SQLException {
+      CommandBuilder builder = new CommandBuilder(TEST_CATALOG, mockSession);
+
+      String sql = builder.getSQLString(CommandName.LIST_COLUMNS);
+
+      String expectedSql = String.format(SHOW_COLUMNS_SQL, TEST_CATALOG);
+      assertEquals(expectedSql, sql);
+    }
+
+    @Test
+    @DisplayName("Should generate correct SQL for fetching columns with schema pattern")
+    void shouldGenerateCorrectSqlForColumnsWithSchemaPattern() throws SQLException {
+      String schemaPattern = "test_schema%";
+      String hiveSchemaPattern = WildcardUtil.jdbcPatternToHive(schemaPattern);
+
+      CommandBuilder builder =
+          new CommandBuilder(TEST_CATALOG, mockSession).setSchemaPattern(schemaPattern);
+
+      String sql = builder.getSQLString(CommandName.LIST_COLUMNS);
+
+      String expectedSql =
+          String.format(SHOW_COLUMNS_SQL.concat(SCHEMA_LIKE_SQL), TEST_CATALOG, hiveSchemaPattern);
+      assertEquals(expectedSql, sql);
+    }
+
+    @Test
+    @DisplayName("Should generate correct SQL for fetching columns with table pattern")
+    void shouldGenerateCorrectSqlForColumnsWithTablePattern() throws SQLException {
+      String tablePattern = "test_table%";
+      String hiveTablePattern = WildcardUtil.jdbcPatternToHive(tablePattern);
+
+      CommandBuilder builder =
+          new CommandBuilder(TEST_CATALOG, mockSession).setTablePattern(tablePattern);
+
+      String sql = builder.getSQLString(CommandName.LIST_COLUMNS);
+
+      String expectedSql =
+          String.format(SHOW_COLUMNS_SQL.concat(TABLE_LIKE_SQL), TEST_CATALOG, hiveTablePattern);
+      assertEquals(expectedSql, sql);
+    }
+
+    @Test
+    @DisplayName("Should generate correct SQL for fetching columns with column pattern")
+    void shouldGenerateCorrectSqlForColumnsWithColumnPattern() throws SQLException {
+      String columnPattern = "test_column%";
+      String hiveColumnPattern = WildcardUtil.jdbcPatternToHive(columnPattern);
+
+      CommandBuilder builder =
+          new CommandBuilder(TEST_CATALOG, mockSession).setColumnPattern(columnPattern);
+
+      String sql = builder.getSQLString(CommandName.LIST_COLUMNS);
+
+      String expectedSql =
+          String.format(SHOW_COLUMNS_SQL.concat(LIKE_SQL), TEST_CATALOG, hiveColumnPattern);
+      assertEquals(expectedSql, sql);
+    }
+
+    @Test
+    @DisplayName("Should generate correct SQL for fetching columns with all patterns")
+    void shouldGenerateCorrectSqlForColumnsWithAllPatterns() throws SQLException {
+      String schemaPattern = "test_schema%";
+      String tablePattern = "test_table%";
+      String columnPattern = "test_column%";
+      String hiveSchemaPattern = WildcardUtil.jdbcPatternToHive(schemaPattern);
+      String hiveTablePattern = WildcardUtil.jdbcPatternToHive(tablePattern);
+      String hiveColumnPattern = WildcardUtil.jdbcPatternToHive(columnPattern);
+
+      CommandBuilder builder =
+          new CommandBuilder(TEST_CATALOG, mockSession)
+              .setSchemaPattern(schemaPattern)
+              .setTablePattern(tablePattern)
+              .setColumnPattern(columnPattern);
+
+      String sql = builder.getSQLString(CommandName.LIST_COLUMNS);
+
+      String expectedSql =
+          String.format(
+              SHOW_COLUMNS_SQL.concat(SCHEMA_LIKE_SQL).concat(TABLE_LIKE_SQL).concat(LIKE_SQL),
+              TEST_CATALOG,
+              hiveSchemaPattern,
+              hiveTablePattern,
+              hiveColumnPattern);
+      assertEquals(expectedSql, sql);
+    }
+
+    @Test
+    @DisplayName("Should throw SQLException when catalog is null for columns")
+    void shouldThrowExceptionWhenCatalogIsNullForColumns() {
+      CommandBuilder builder = new CommandBuilder(null, mockSession);
+
+      assertThrows(SQLException.class, () -> builder.getSQLString(CommandName.LIST_COLUMNS));
+    }
+  }
+
+  @Nested
+  @DisplayName("Tests for LIST_FUNCTIONS command")
+  class ListFunctionsTests {
+
+    @Test
+    @DisplayName("Should generate correct SQL for fetching functions")
+    void shouldGenerateCorrectSqlForFunctions() throws SQLException {
+      CommandBuilder builder = new CommandBuilder(TEST_CATALOG, mockSession);
+
+      String sql = builder.getSQLString(CommandName.LIST_FUNCTIONS);
+
+      String expectedSql = String.format(SHOW_FUNCTIONS_SQL, TEST_CATALOG);
+      assertEquals(expectedSql, sql);
+    }
+
+    @Test
+    @DisplayName("Should generate correct SQL for fetching functions with schema pattern")
+    void shouldGenerateCorrectSqlForFunctionsWithSchemaPattern() throws SQLException {
+      String schemaPattern = "test_schema%";
+      String hiveSchemaPattern = WildcardUtil.jdbcPatternToHive(schemaPattern);
+
+      CommandBuilder builder =
+          new CommandBuilder(TEST_CATALOG, mockSession).setSchemaPattern(schemaPattern);
+
+      String sql = builder.getSQLString(CommandName.LIST_FUNCTIONS);
+
+      String expectedSql =
+          String.format(
+              SHOW_FUNCTIONS_SQL.concat(SCHEMA_LIKE_SQL), TEST_CATALOG, hiveSchemaPattern);
+      assertEquals(expectedSql, sql);
+    }
+
+    @Test
+    @DisplayName("Should generate correct SQL for fetching functions with function pattern")
+    void shouldGenerateCorrectSqlForFunctionsWithFunctionPattern() throws SQLException {
+      String functionPattern = "test_func%";
+      String hiveFunctionPattern = WildcardUtil.jdbcPatternToHive(functionPattern);
+
+      CommandBuilder builder =
+          new CommandBuilder(TEST_CATALOG, mockSession).setFunctionPattern(functionPattern);
+
+      String sql = builder.getSQLString(CommandName.LIST_FUNCTIONS);
+
+      String expectedSql =
+          String.format(SHOW_FUNCTIONS_SQL.concat(LIKE_SQL), TEST_CATALOG, hiveFunctionPattern);
+      assertEquals(expectedSql, sql);
+    }
+
+    @Test
+    @DisplayName("Should generate correct SQL for fetching functions with all patterns")
+    void shouldGenerateCorrectSqlForFunctionsWithAllPatterns() throws SQLException {
+      String schemaPattern = "test_schema%";
+      String functionPattern = "test_func%";
+      String hiveSchemaPattern = WildcardUtil.jdbcPatternToHive(schemaPattern);
+      String hiveFunctionPattern = WildcardUtil.jdbcPatternToHive(functionPattern);
+
+      CommandBuilder builder =
+          new CommandBuilder(TEST_CATALOG, mockSession)
+              .setSchemaPattern(schemaPattern)
+              .setFunctionPattern(functionPattern);
+
+      String sql = builder.getSQLString(CommandName.LIST_FUNCTIONS);
+
+      String expectedSql =
+          String.format(
+              SHOW_FUNCTIONS_SQL.concat(SCHEMA_LIKE_SQL).concat(LIKE_SQL),
+              TEST_CATALOG,
+              hiveSchemaPattern,
+              hiveFunctionPattern);
+      assertEquals(expectedSql, sql);
+    }
+
+    @Test
+    @DisplayName("Should throw SQLException when catalog is null for functions")
+    void shouldThrowExceptionWhenCatalogIsNullForFunctions() {
+      CommandBuilder builder = new CommandBuilder(null, mockSession);
+
+      assertThrows(SQLException.class, () -> builder.getSQLString(CommandName.LIST_FUNCTIONS));
+    }
+  }
+
+  @Nested
+  @DisplayName("Tests for LIST_SCHEMAS command")
+  class ListSchemasTests {
+
+    @Test
+    @DisplayName("Should generate correct SQL for fetching schemas")
+    void shouldGenerateCorrectSqlForSchemas() throws SQLException {
+      CommandBuilder builder = new CommandBuilder(TEST_CATALOG, mockSession);
+
+      String sql = builder.getSQLString(CommandName.LIST_SCHEMAS);
+
+      String expectedSql = String.format(SHOW_SCHEMAS_IN_CATALOG_SQL, TEST_CATALOG);
+      assertEquals(expectedSql, sql);
+    }
+
+    @Test
+    @DisplayName("Should generate correct SQL for fetching schemas with pattern")
+    void shouldGenerateCorrectSqlForSchemasWithPattern() throws SQLException {
+      String schemaPattern = "test_schema%";
+      String hiveSchemaPattern = WildcardUtil.jdbcPatternToHive(schemaPattern);
+
+      CommandBuilder builder =
+          new CommandBuilder(TEST_CATALOG, mockSession).setSchemaPattern(schemaPattern);
+
+      String sql = builder.getSQLString(CommandName.LIST_SCHEMAS);
+
+      String expectedSql =
+          String.format(
+              SHOW_SCHEMAS_IN_CATALOG_SQL.concat(LIKE_SQL), TEST_CATALOG, hiveSchemaPattern);
+      assertEquals(expectedSql, sql);
+    }
+
+    @Test
+    @DisplayName("Should generate correct SQL for fetching schemas from all catalogs")
+    void shouldGenerateCorrectSqlForSchemasFromAllCatalogs() throws SQLException {
+      CommandBuilder builder = new CommandBuilder(null, mockSession);
+
+      String sql = builder.getSQLString(CommandName.LIST_SCHEMAS);
+
+      assertEquals(SHOW_SCHEMAS_IN_ALL_CATALOGS_SQL, sql);
+    }
+
+    @Test
+    @DisplayName("Should generate correct SQL for fetching schemas with wildcard catalog")
+    void shouldGenerateCorrectSqlForSchemasWithWildcardCatalog() throws SQLException {
+      CommandBuilder builder1 = new CommandBuilder("*", mockSession);
+      String sql1 = builder1.getSQLString(CommandName.LIST_SCHEMAS);
+      assertEquals(SHOW_SCHEMAS_IN_ALL_CATALOGS_SQL, sql1);
+
+      CommandBuilder builder2 = new CommandBuilder("%", mockSession);
+      String sql2 = builder2.getSQLString(CommandName.LIST_SCHEMAS);
+      assertEquals(SHOW_SCHEMAS_IN_ALL_CATALOGS_SQL, sql2);
+    }
+  }
+
+  @Nested
+  @DisplayName("Tests for LIST_CATALOGS command")
+  class ListCatalogsTests {
+
+    @Test
+    @DisplayName("Should generate correct SQL for fetching catalogs")
+    void shouldGenerateCorrectSqlForCatalogs() throws SQLException {
+      CommandBuilder builder = new CommandBuilder(mockSession);
+
+      String sql = builder.getSQLString(CommandName.LIST_CATALOGS);
+
+      assertEquals(SHOW_CATALOGS_SQL, sql);
+    }
+  }
+
+  @Nested
+  @DisplayName("Tests for LIST_TABLE_TYPES command")
+  class ListTableTypesTests {
+
+    @Test
+    @DisplayName("Should generate correct SQL for fetching table types")
+    void shouldGenerateCorrectSqlForTableTypes() throws SQLException {
+      CommandBuilder builder = new CommandBuilder(TEST_CATALOG, mockSession);
+
+      String sql = builder.getSQLString(CommandName.LIST_TABLE_TYPES);
+
+      assertEquals(SHOW_TABLE_TYPES_SQL, sql);
+    }
+  }
+
+  @Nested
+  @DisplayName("Tests for pattern conversion")
+  class PatternConversionTests {
+
+    @Test
+    @DisplayName("Should correctly convert JDBC wildcard patterns to Hive patterns")
+    void shouldCorrectlyConvertJdbcPatternsToHivePatterns() throws SQLException {
+      // Test underscore conversion
+      CommandBuilder builder1 =
+          new CommandBuilder(TEST_CATALOG, mockSession).setSchemaPattern("test_schema");
+      String sql1 = builder1.getSQLString(CommandName.LIST_TABLES);
+      assertTrue(sql1.contains(WildcardUtil.jdbcPatternToHive("test_schema")));
+
+      // Test percent conversion
+      CommandBuilder builder2 =
+          new CommandBuilder(TEST_CATALOG, mockSession).setTablePattern("test%");
+      String sql2 = builder2.getSQLString(CommandName.LIST_TABLES);
+      assertTrue(sql2.contains(WildcardUtil.jdbcPatternToHive("test%")));
+    }
+
+    @Test
+    @DisplayName("Should handle null patterns correctly")
+    void shouldHandleNullPatternsCorrectly() throws SQLException {
+      CommandBuilder builder =
+          new CommandBuilder(TEST_CATALOG, mockSession)
+              .setSchemaPattern(null)
+              .setTablePattern(null)
+              .setColumnPattern(null)
+              .setFunctionPattern(null);
+
+      String sql = builder.getSQLString(CommandName.LIST_TABLES);
+
+      // Should not contain any LIKE clauses
+      assertFalse(sql.contains("LIKE"));
+    }
+
+    @Test
+    @DisplayName("Should handle empty string patterns")
+    void shouldHandleEmptyStringPatterns() throws SQLException {
+      CommandBuilder builder =
+          new CommandBuilder(TEST_CATALOG, mockSession)
+              .setSchemaPattern("")
+              .setTablePattern("")
+              .setColumnPattern("");
+
+      String sql = builder.getSQLString(CommandName.LIST_TABLES);
+
+      // Should contain LIKE clauses with empty patterns
+      assertTrue(sql.contains("SCHEMA LIKE ''"));
+      assertTrue(sql.contains("LIKE ''"));
+    }
+  }
 }
