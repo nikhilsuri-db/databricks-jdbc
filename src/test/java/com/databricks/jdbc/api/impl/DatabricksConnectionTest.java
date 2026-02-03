@@ -18,6 +18,7 @@ import com.databricks.jdbc.dbclient.impl.sqlexec.DatabricksSdkClient;
 import com.databricks.jdbc.exception.DatabricksSQLException;
 import com.databricks.jdbc.exception.DatabricksSQLFeatureNotImplementedException;
 import com.databricks.jdbc.exception.DatabricksSQLFeatureNotSupportedException;
+import com.databricks.jdbc.exception.DatabricksValidationException;
 import com.databricks.jdbc.model.telemetry.enums.DatabricksDriverErrorCode;
 import java.sql.*;
 import java.util.*;
@@ -1082,5 +1083,432 @@ public class DatabricksConnectionTest {
     verify(mockStatement).execute("SET AUTOCOMMIT = TRUE");
 
     spyConnection.close();
+  }
+
+  // ==================== Additional Setting Method Tests ====================
+
+  @Test
+  public void testSetReadOnlyWithClosedConnection() {
+    assertThrows(
+        DatabricksSQLException.class,
+        () -> {
+          when(databricksClient.createSession(
+                  new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+              .thenReturn(IMMUTABLE_SESSION_INFO);
+          connection = new DatabricksConnection(connectionContext, databricksClient);
+          connection.open();
+          connection.close();
+          connection.setReadOnly(false);
+        });
+  }
+
+  @Test
+  public void testIsReadOnlyReturnsFalse() throws SQLException {
+    when(databricksClient.createSession(
+            new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+        .thenReturn(IMMUTABLE_SESSION_INFO);
+    connection = new DatabricksConnection(connectionContext, databricksClient);
+    connection.open();
+    assertFalse(connection.isReadOnly());
+    connection.close();
+  }
+
+  @Test
+  public void testSetHoldabilityWithValidValue() throws SQLException {
+    when(databricksClient.createSession(
+            new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+        .thenReturn(IMMUTABLE_SESSION_INFO);
+    connection = new DatabricksConnection(connectionContext, databricksClient);
+    connection.open();
+    // Valid holdability value
+    assertDoesNotThrow(() -> connection.setHoldability(ResultSet.CLOSE_CURSORS_AT_COMMIT));
+    assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT, connection.getHoldability());
+    connection.close();
+  }
+
+  @Test
+  public void testSetHoldabilityWithInvalidValue() throws SQLException {
+    when(databricksClient.createSession(
+            new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+        .thenReturn(IMMUTABLE_SESSION_INFO);
+    connection = new DatabricksConnection(connectionContext, databricksClient);
+    connection.open();
+    // Invalid holdability value
+    assertThrows(
+        DatabricksSQLFeatureNotSupportedException.class,
+        () -> connection.setHoldability(ResultSet.HOLD_CURSORS_OVER_COMMIT));
+    connection.close();
+  }
+
+  @Test
+  public void testGetHoldabilityReturnsCorrectValue() throws SQLException {
+    when(databricksClient.createSession(
+            new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+        .thenReturn(IMMUTABLE_SESSION_INFO);
+    connection = new DatabricksConnection(connectionContext, databricksClient);
+    connection.open();
+    assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT, connection.getHoldability());
+    connection.close();
+  }
+
+  @Test
+  public void testSetTransactionIsolationWithClosedConnection() {
+    assertThrows(
+        DatabricksSQLException.class,
+        () -> {
+          when(databricksClient.createSession(
+                  new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+              .thenReturn(IMMUTABLE_SESSION_INFO);
+          connection = new DatabricksConnection(connectionContext, databricksClient);
+          connection.open();
+          connection.close();
+          connection.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
+        });
+  }
+
+  @Test
+  public void testSetTransactionIsolationWithUnsupportedLevel() throws SQLException {
+    when(databricksClient.createSession(
+            new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+        .thenReturn(IMMUTABLE_SESSION_INFO);
+    connection = new DatabricksConnection(connectionContext, databricksClient);
+    connection.open();
+    assertThrows(
+        DatabricksSQLFeatureNotSupportedException.class,
+        () -> connection.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED));
+    assertThrows(
+        DatabricksSQLFeatureNotSupportedException.class,
+        () -> connection.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED));
+    assertThrows(
+        DatabricksSQLFeatureNotSupportedException.class,
+        () -> connection.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE));
+    connection.close();
+  }
+
+  @Test
+  public void testGetTransactionIsolationWithClosedConnection() {
+    assertThrows(
+        DatabricksSQLException.class,
+        () -> {
+          when(databricksClient.createSession(
+                  new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+              .thenReturn(IMMUTABLE_SESSION_INFO);
+          connection = new DatabricksConnection(connectionContext, databricksClient);
+          connection.open();
+          connection.close();
+          connection.getTransactionIsolation();
+        });
+  }
+
+  @Test
+  public void testGetWarningsReturnsNullInitially() throws SQLException {
+    when(databricksClient.createSession(
+            new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+        .thenReturn(IMMUTABLE_SESSION_INFO);
+    connection = new DatabricksConnection(connectionContext, databricksClient);
+    connection.open();
+    assertNull(connection.getWarnings());
+    connection.close();
+  }
+
+  @Test
+  public void testClearWarningsWithClosedConnection() {
+    assertThrows(
+        DatabricksSQLException.class,
+        () -> {
+          when(databricksClient.createSession(
+                  new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+              .thenReturn(IMMUTABLE_SESSION_INFO);
+          connection = new DatabricksConnection(connectionContext, databricksClient);
+          connection.open();
+          connection.close();
+          connection.clearWarnings();
+        });
+  }
+
+  @Test
+  public void testGetWarningsWithClosedConnection() {
+    assertThrows(
+        DatabricksSQLException.class,
+        () -> {
+          when(databricksClient.createSession(
+                  new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+              .thenReturn(IMMUTABLE_SESSION_INFO);
+          connection = new DatabricksConnection(connectionContext, databricksClient);
+          connection.open();
+          connection.close();
+          connection.getWarnings();
+        });
+  }
+
+  @Test
+  public void testAbortWithNullExecutor() throws SQLException {
+    when(databricksClient.createSession(
+            new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+        .thenReturn(IMMUTABLE_SESSION_INFO);
+    connection = new DatabricksConnection(connectionContext, databricksClient);
+    connection.open();
+    assertThrows(NullPointerException.class, () -> connection.abort(null));
+    connection.close();
+  }
+
+  @Test
+  public void testAbortClosesConnection() throws SQLException, InterruptedException {
+    when(databricksClient.createSession(
+            new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+        .thenReturn(IMMUTABLE_SESSION_INFO);
+    connection = new DatabricksConnection(connectionContext, databricksClient);
+    connection.open();
+    assertFalse(connection.isClosed());
+
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    connection.abort(executor);
+    Thread.sleep(100); // Give time for async close
+    assertTrue(connection.isClosed());
+    executor.shutdown();
+  }
+
+  @Test
+  public void testUnwrapWithInvalidInterface() throws SQLException {
+    when(databricksClient.createSession(
+            new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+        .thenReturn(IMMUTABLE_SESSION_INFO);
+    connection = new DatabricksConnection(connectionContext, databricksClient);
+    connection.open();
+    assertThrows(DatabricksValidationException.class, () -> connection.unwrap(ResultSet.class));
+    connection.close();
+  }
+
+  @Test
+  public void testUnwrapWithValidInterface() throws SQLException {
+    when(databricksClient.createSession(
+            new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+        .thenReturn(IMMUTABLE_SESSION_INFO);
+    connection = new DatabricksConnection(connectionContext, databricksClient);
+    connection.open();
+    assertNotNull(connection.unwrap(DatabricksConnection.class));
+    assertNotNull(connection.unwrap(Connection.class));
+    connection.close();
+  }
+
+  @Test
+  public void testIsWrapperForWithValidInterface() throws SQLException {
+    when(databricksClient.createSession(
+            new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+        .thenReturn(IMMUTABLE_SESSION_INFO);
+    connection = new DatabricksConnection(connectionContext, databricksClient);
+    connection.open();
+    assertTrue(connection.isWrapperFor(DatabricksConnection.class));
+    assertTrue(connection.isWrapperFor(Connection.class));
+    connection.close();
+  }
+
+  @Test
+  public void testIsWrapperForWithInvalidInterface() throws SQLException {
+    when(databricksClient.createSession(
+            new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+        .thenReturn(IMMUTABLE_SESSION_INFO);
+    connection = new DatabricksConnection(connectionContext, databricksClient);
+    connection.open();
+    assertFalse(connection.isWrapperFor(ResultSet.class));
+    assertFalse(connection.isWrapperFor(Statement.class));
+    connection.close();
+  }
+
+  @Test
+  public void testBeginRequestIsNoOp() throws SQLException {
+    when(databricksClient.createSession(
+            new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+        .thenReturn(IMMUTABLE_SESSION_INFO);
+    connection = new DatabricksConnection(connectionContext, databricksClient);
+    connection.open();
+    assertDoesNotThrow(() -> connection.beginRequest());
+    connection.close();
+  }
+
+  @Test
+  public void testEndRequestIsNoOp() throws SQLException {
+    when(databricksClient.createSession(
+            new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+        .thenReturn(IMMUTABLE_SESSION_INFO);
+    connection = new DatabricksConnection(connectionContext, databricksClient);
+    connection.open();
+    assertDoesNotThrow(() -> connection.endRequest());
+    connection.close();
+  }
+
+  @Test
+  public void testSetTypeMapThrowsException() throws SQLException {
+    when(databricksClient.createSession(
+            new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+        .thenReturn(IMMUTABLE_SESSION_INFO);
+    connection = new DatabricksConnection(connectionContext, databricksClient);
+    connection.open();
+    Map<String, Class<?>> typeMap = new HashMap<>();
+    typeMap.put("test", String.class);
+    assertThrows(
+        DatabricksSQLFeatureNotSupportedException.class, () -> connection.setTypeMap(typeMap));
+    connection.close();
+  }
+
+  @Test
+  public void testGetTypeMapReturnsEmptyMap() throws SQLException {
+    when(databricksClient.createSession(
+            new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+        .thenReturn(IMMUTABLE_SESSION_INFO);
+    connection = new DatabricksConnection(connectionContext, databricksClient);
+    connection.open();
+    Map<String, Class<?>> typeMap = connection.getTypeMap();
+    assertNotNull(typeMap);
+    assertTrue(typeMap.isEmpty());
+    connection.close();
+  }
+
+  @Test
+  public void testSetCatalogWithNullValue() throws SQLException {
+    when(databricksClient.createSession(
+            new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+        .thenReturn(IMMUTABLE_SESSION_INFO);
+    connection = new DatabricksConnection(connectionContext, databricksClient);
+    connection.open();
+    assertThrows(NullPointerException.class, () -> connection.setCatalog(null));
+    connection.close();
+  }
+
+  @Test
+  public void testSetSchemaWithNullValue() throws SQLException {
+    when(databricksClient.createSession(
+            new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+        .thenReturn(IMMUTABLE_SESSION_INFO);
+    connection = new DatabricksConnection(connectionContext, databricksClient);
+    connection.open();
+    assertThrows(NullPointerException.class, () -> connection.setSchema(null));
+    connection.close();
+  }
+
+  @Test
+  public void testSetClientInfoWithNullName() throws SQLException {
+    when(databricksClient.createSession(
+            new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+        .thenReturn(IMMUTABLE_SESSION_INFO);
+    connection = new DatabricksConnection(connectionContext, databricksClient);
+    connection.open();
+    assertThrows(NullPointerException.class, () -> connection.setClientInfo(null, "value"));
+    connection.close();
+  }
+
+  @Test
+  public void testSetClientInfoWithEmptyProperties() throws SQLException {
+    when(databricksClient.createSession(
+            new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+        .thenReturn(IMMUTABLE_SESSION_INFO);
+    connection = new DatabricksConnection(connectionContext, databricksClient);
+    connection.open();
+    Properties emptyProps = new Properties();
+    assertDoesNotThrow(() -> connection.setClientInfo(emptyProps));
+    connection.close();
+  }
+
+  @Test
+  public void testGetClientInfoWithNonExistentProperty() throws SQLException {
+    when(databricksClient.createSession(
+            new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+        .thenReturn(IMMUTABLE_SESSION_INFO);
+    connection = new DatabricksConnection(connectionContext, databricksClient);
+    connection.open();
+    assertNull(connection.getClientInfo("NonExistentProperty"));
+    connection.close();
+  }
+
+  @Test
+  public void testGetClientInfoReturnsProperties() throws SQLException {
+    when(databricksClient.createSession(
+            new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+        .thenReturn(IMMUTABLE_SESSION_INFO);
+    connection = new DatabricksConnection(connectionContext, databricksClient);
+    connection.open();
+    Properties props = connection.getClientInfo();
+    assertNotNull(props);
+    assertFalse(props.isEmpty());
+    connection.close();
+  }
+
+  @Test
+  public void testPrepareStatementWithHoldability() throws SQLException {
+    when(databricksClient.createSession(
+            new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+        .thenReturn(IMMUTABLE_SESSION_INFO);
+    connection = new DatabricksConnection(connectionContext, databricksClient);
+    connection.open();
+    assertDoesNotThrow(
+        () ->
+            connection.prepareStatement(
+                SQL,
+                ResultSet.TYPE_FORWARD_ONLY,
+                ResultSet.CONCUR_READ_ONLY,
+                ResultSet.CLOSE_CURSORS_AT_COMMIT));
+    connection.close();
+  }
+
+  @Test
+  public void testPrepareStatementWithInvalidHoldability() throws SQLException {
+    when(databricksClient.createSession(
+            new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+        .thenReturn(IMMUTABLE_SESSION_INFO);
+    connection = new DatabricksConnection(connectionContext, databricksClient);
+    connection.open();
+    assertThrows(
+        DatabricksSQLFeatureNotSupportedException.class,
+        () ->
+            connection.prepareStatement(
+                SQL,
+                ResultSet.TYPE_FORWARD_ONLY,
+                ResultSet.CONCUR_READ_ONLY,
+                ResultSet.HOLD_CURSORS_OVER_COMMIT));
+    connection.close();
+  }
+
+  @Test
+  public void testPrepareStatementWithAutoGeneratedKeys() throws SQLException {
+    when(databricksClient.createSession(
+            new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+        .thenReturn(IMMUTABLE_SESSION_INFO);
+    connection = new DatabricksConnection(connectionContext, databricksClient);
+    connection.open();
+    assertDoesNotThrow(() -> connection.prepareStatement(SQL, Statement.NO_GENERATED_KEYS));
+    assertThrows(
+        DatabricksSQLFeatureNotSupportedException.class,
+        () -> connection.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS));
+    connection.close();
+  }
+
+  @Test
+  public void testSetAutoCommitWithClosedConnection() {
+    assertThrows(
+        DatabricksSQLException.class,
+        () -> {
+          when(databricksClient.createSession(
+                  new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+              .thenReturn(IMMUTABLE_SESSION_INFO);
+          connection = new DatabricksConnection(connectionContext, databricksClient);
+          connection.open();
+          connection.close();
+          connection.setAutoCommit(false);
+        });
+  }
+
+  @Test
+  public void testGetAutoCommitWithClosedConnection() {
+    assertThrows(
+        DatabricksSQLException.class,
+        () -> {
+          when(databricksClient.createSession(
+                  new Warehouse(WAREHOUSE_ID), CATALOG, SCHEMA, new HashMap<>()))
+              .thenReturn(IMMUTABLE_SESSION_INFO);
+          connection = new DatabricksConnection(connectionContext, databricksClient);
+          connection.open();
+          connection.close();
+          connection.getAutoCommit();
+        });
   }
 }
