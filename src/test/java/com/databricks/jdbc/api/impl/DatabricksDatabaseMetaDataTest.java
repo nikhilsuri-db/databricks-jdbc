@@ -1661,4 +1661,40 @@ public class DatabricksDatabaseMetaDataTest {
         // Test case 9: Special characters in patterns
         Arguments.of(null, "_test%", "%ENTITY_", "_column%", "Special characters in patterns"));
   }
+
+  @Test
+  public void testGetMaxLogicalLobSize_ReturnsZero() throws SQLException {
+    long result = metaData.getMaxLogicalLobSize();
+    assertEquals(0L, result);
+  }
+
+  @Test
+  public void testGetMaxLogicalLobSize_ThrowsExceptionWhenConnectionClosed() throws SQLException {
+    when(session.isOpen()).thenReturn(false);
+    assertThrows(SQLException.class, () -> metaData.getMaxLogicalLobSize());
+  }
+
+  @Test
+  public void testSupportsRefCursors_ReturnsFalse() throws SQLException {
+    boolean result = metaData.supportsRefCursors();
+    assertFalse(result);
+  }
+
+  @Test
+  public void testSupportsRefCursors_ThrowsExceptionWhenConnectionClosed() throws SQLException {
+    when(session.isOpen()).thenReturn(false);
+    assertThrows(SQLException.class, () -> metaData.supportsRefCursors());
+  }
+
+  @Test
+  public void testSupportsSharding_ReturnsFalse() throws SQLException {
+    boolean result = metaData.supportsSharding();
+    assertFalse(result);
+  }
+
+  @Test
+  public void testSupportsSharding_ThrowsExceptionWhenConnectionClosed() throws SQLException {
+    when(session.isOpen()).thenReturn(false);
+    assertThrows(SQLException.class, () -> metaData.supportsSharding());
+  }
 }
