@@ -22,6 +22,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -45,14 +47,13 @@ class VolumeUploadCallbackTest {
     retryDelayCalculator = attempt -> 100L; // Short delay for tests
   }
 
-  @Test
-  void should_CompleteSuccessfully_When_UploadReturns200() {
+  @ParameterizedTest
+  @ValueSource(ints = {200, 201, 299})
+  void should_CompleteSuccessfully_When_UploadReturnsSuccessStatusCode(int statusCode) {
     // Arrange
-    Path testFile = tempDir.resolve("test.txt");
-    UploadRequest request = createFileUploadRequest(testFile, "test.txt");
-
+    UploadRequest request = createStreamUploadRequest("test.txt");
     SimpleHttpResponse response = mock(SimpleHttpResponse.class);
-    when(response.getCode()).thenReturn(200);
+    when(response.getCode()).thenReturn(statusCode);
 
     VolumeUploadCallback callback = createCallback(request);
 
@@ -62,47 +63,9 @@ class VolumeUploadCallbackTest {
     // Assert
     assertTrue(uploadFuture.isDone());
     VolumePutResult result = uploadFuture.join();
-    assertEquals(200, result.getStatusCode());
+    assertEquals(statusCode, result.getStatusCode());
     assertEquals(VolumeOperationStatus.SUCCEEDED, result.getStatus());
     assertNull(result.getMessage());
-  }
-
-  @Test
-  void should_CompleteSuccessfully_When_UploadReturns201() {
-    // Arrange
-    UploadRequest request = createStreamUploadRequest("test.txt");
-    SimpleHttpResponse response = mock(SimpleHttpResponse.class);
-    when(response.getCode()).thenReturn(201);
-
-    VolumeUploadCallback callback = createCallback(request);
-
-    // Act
-    callback.completed(response);
-
-    // Assert
-    assertTrue(uploadFuture.isDone());
-    VolumePutResult result = uploadFuture.join();
-    assertEquals(201, result.getStatusCode());
-    assertEquals(VolumeOperationStatus.SUCCEEDED, result.getStatus());
-  }
-
-  @Test
-  void should_CompleteSuccessfully_When_UploadReturns299() {
-    // Arrange
-    UploadRequest request = createStreamUploadRequest("test.txt");
-    SimpleHttpResponse response = mock(SimpleHttpResponse.class);
-    when(response.getCode()).thenReturn(299);
-
-    VolumeUploadCallback callback = createCallback(request);
-
-    // Act
-    callback.completed(response);
-
-    // Assert
-    assertTrue(uploadFuture.isDone());
-    VolumePutResult result = uploadFuture.join();
-    assertEquals(299, result.getStatusCode());
-    assertEquals(VolumeOperationStatus.SUCCEEDED, result.getStatus());
   }
 
   @Test
@@ -143,13 +106,11 @@ class VolumeUploadCallbackTest {
 
   @Test
   void should_HandleFileUpload_When_FilePathProvided() {
-    // Arrange
+    // Arrange - exercises file-path code path (distinct from stream)
     Path testFile = tempDir.resolve("test.txt");
     UploadRequest request = createFileUploadRequest(testFile, "test.txt");
-
     SimpleHttpResponse response = mock(SimpleHttpResponse.class);
     when(response.getCode()).thenReturn(200);
-
     VolumeUploadCallback callback = createCallback(request);
 
     // Act
@@ -157,27 +118,7 @@ class VolumeUploadCallbackTest {
 
     // Assert
     assertTrue(uploadFuture.isDone());
-    VolumePutResult result = uploadFuture.join();
-    assertEquals(VolumeOperationStatus.SUCCEEDED, result.getStatus());
-  }
-
-  @Test
-  void should_HandleStreamUpload_When_InputStreamProvided() {
-    // Arrange
-    UploadRequest request = createStreamUploadRequest("test.txt");
-
-    SimpleHttpResponse response = mock(SimpleHttpResponse.class);
-    when(response.getCode()).thenReturn(200);
-
-    VolumeUploadCallback callback = createCallback(request);
-
-    // Act
-    callback.completed(response);
-
-    // Assert
-    assertTrue(uploadFuture.isDone());
-    VolumePutResult result = uploadFuture.join();
-    assertEquals(VolumeOperationStatus.SUCCEEDED, result.getStatus());
+    assertEquals(VolumeOperationStatus.SUCCEEDED, uploadFuture.join().getStatus());
   }
 
   // Helper methods
