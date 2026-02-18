@@ -1,8 +1,11 @@
 package com.databricks.jdbc.api.impl.volume;
 
+import static com.databricks.jdbc.TestConstants.TEST_CATALOG;
+import static com.databricks.jdbc.TestConstants.TEST_SCHEMA;
 import static com.databricks.jdbc.common.DatabricksJdbcConstants.VOLUME_OPERATION_STATUS_COLUMN_NAME;
 import static com.databricks.jdbc.common.DatabricksJdbcConstants.VOLUME_OPERATION_STATUS_SUCCEEDED;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
@@ -38,15 +41,23 @@ class DatabricksUCVolumeClientTest {
 
   private DatabricksUCVolumeClient client;
 
+  private static final String VOLUME = "volume";
+
   @BeforeEach
   void setup() throws SQLException {
     client = new DatabricksUCVolumeClient(mockConnection);
     lenient().when(mockConnection.createStatement()).thenReturn(mockStatement);
   }
 
+  private void givenVolumeOperationResult(String status) throws SQLException {
+    when(mockStatement.executeQuery(anyString())).thenReturn(mockResultSet);
+    when(mockResultSet.next()).thenReturn(true);
+    when(mockResultSet.getString(VOLUME_OPERATION_STATUS_COLUMN_NAME)).thenReturn(status);
+  }
+
   @Test
   void should_ReturnFalse_When_PrefixIsEmpty() throws SQLException {
-    boolean result = client.prefixExists("catalog", "schema", "volume", "");
+    boolean result = client.prefixExists(TEST_CATALOG, TEST_SCHEMA, VOLUME, "");
 
     assertFalse(result);
     verify(mockConnection, never()).createStatement();
@@ -65,7 +76,7 @@ class DatabricksUCVolumeClientTest {
     when(mockResultSet.next()).thenReturn(true, false);
     when(mockResultSet.getString("name")).thenReturn(fileName);
 
-    boolean result = client.prefixExists("catalog", "schema", "volume", prefix, caseSensitive);
+    boolean result = client.prefixExists(TEST_CATALOG, TEST_SCHEMA, VOLUME, prefix, caseSensitive);
 
     assertEquals(expected, result);
   }
@@ -76,7 +87,7 @@ class DatabricksUCVolumeClientTest {
     when(mockResultSet.next()).thenReturn(true, false);
     when(mockResultSet.getString("name")).thenReturn("testfile.txt");
 
-    boolean result = client.prefixExists("catalog", "schema", "volume", "test", true);
+    boolean result = client.prefixExists(TEST_CATALOG, TEST_SCHEMA, VOLUME, "test", true);
 
     assertTrue(result);
     verify(mockStatement).executeQuery(argThat(query -> query.contains("LIST")));
@@ -89,13 +100,13 @@ class DatabricksUCVolumeClientTest {
     SQLException ex =
         assertThrows(
             SQLException.class,
-            () -> client.prefixExists("catalog", "schema", "volume", "test", true));
+            () -> client.prefixExists(TEST_CATALOG, TEST_SCHEMA, VOLUME, "test", true));
     assertTrue(ex.getMessage().contains("Query failed"));
   }
 
   @Test
   void should_ReturnFalse_When_ObjectPathIsEmpty() throws SQLException {
-    boolean result = client.objectExists("catalog", "schema", "volume", "");
+    boolean result = client.objectExists(TEST_CATALOG, TEST_SCHEMA, VOLUME, "");
 
     assertFalse(result);
     verify(mockConnection, never()).createStatement();
@@ -114,7 +125,8 @@ class DatabricksUCVolumeClientTest {
     when(mockResultSet.next()).thenReturn(true, false);
     when(mockResultSet.getString("name")).thenReturn(fileName);
 
-    boolean result = client.objectExists("catalog", "schema", "volume", objectPath, caseSensitive);
+    boolean result =
+        client.objectExists(TEST_CATALOG, TEST_SCHEMA, VOLUME, objectPath, caseSensitive);
 
     assertEquals(expected, result);
   }
@@ -125,14 +137,14 @@ class DatabricksUCVolumeClientTest {
     when(mockResultSet.next()).thenReturn(true, false);
     when(mockResultSet.getString("name")).thenReturn("file.txt");
 
-    boolean result = client.objectExists("catalog", "schema", "volume", "file.txt");
+    boolean result = client.objectExists(TEST_CATALOG, TEST_SCHEMA, VOLUME, "file.txt");
 
     assertTrue(result);
   }
 
   @Test
   void should_ReturnFalse_When_VolumeNameIsEmpty() throws SQLException {
-    boolean result = client.volumeExists("catalog", "schema", "");
+    boolean result = client.volumeExists(TEST_CATALOG, TEST_SCHEMA, "");
 
     assertFalse(result);
     verify(mockConnection, never()).createStatement();
@@ -151,7 +163,7 @@ class DatabricksUCVolumeClientTest {
     when(mockResultSet.next()).thenReturn(true, false);
     when(mockResultSet.getString("volume_name")).thenReturn(resultVolume);
 
-    boolean result = client.volumeExists("catalog", "schema", volumeName, caseSensitive);
+    boolean result = client.volumeExists(TEST_CATALOG, TEST_SCHEMA, volumeName, caseSensitive);
 
     assertEquals(expected, result);
   }
@@ -162,7 +174,7 @@ class DatabricksUCVolumeClientTest {
     when(mockResultSet.next()).thenReturn(true, false);
     when(mockResultSet.getString("volume_name")).thenReturn("myvolume");
 
-    boolean result = client.volumeExists("catalog", "schema", "myvolume");
+    boolean result = client.volumeExists(TEST_CATALOG, TEST_SCHEMA, "myvolume");
 
     assertTrue(result);
     verify(mockStatement).executeQuery(argThat(query -> query.contains("SHOW VOLUMES")));
@@ -174,7 +186,7 @@ class DatabricksUCVolumeClientTest {
     when(mockResultSet.next()).thenReturn(true, true, true, false);
     when(mockResultSet.getString("name")).thenReturn("file1.txt", "file2.txt", "other.txt");
 
-    List<String> result = client.listObjects("catalog", "schema", "volume", "file", true);
+    List<String> result = client.listObjects(TEST_CATALOG, TEST_SCHEMA, VOLUME, "file", true);
 
     assertEquals(2, result.size());
     assertTrue(result.contains("file1.txt"));
@@ -187,7 +199,7 @@ class DatabricksUCVolumeClientTest {
     when(mockResultSet.next()).thenReturn(true, false);
     when(mockResultSet.getString("name")).thenReturn("other.txt");
 
-    List<String> result = client.listObjects("catalog", "schema", "volume", "file");
+    List<String> result = client.listObjects(TEST_CATALOG, TEST_SCHEMA, VOLUME, "file");
 
     assertTrue(result.isEmpty());
   }
@@ -198,33 +210,24 @@ class DatabricksUCVolumeClientTest {
     when(mockResultSet.next()).thenReturn(true, true, false);
     when(mockResultSet.getString("name")).thenReturn("file1.txt", "file2.txt");
 
-    List<String> result = client.listObjects("catalog", "schema", "volume", "");
+    List<String> result = client.listObjects(TEST_CATALOG, TEST_SCHEMA, VOLUME, "");
 
     assertEquals(2, result.size());
   }
 
-  @Test
-  void should_ReturnTrue_When_GetObjectSucceeds() throws SQLException {
-    when(mockStatement.executeQuery(anyString())).thenReturn(mockResultSet);
-    when(mockResultSet.next()).thenReturn(true);
-    when(mockResultSet.getString(VOLUME_OPERATION_STATUS_COLUMN_NAME))
-        .thenReturn(VOLUME_OPERATION_STATUS_SUCCEEDED);
+  @ParameterizedTest
+  @CsvSource({"SUCCEEDED, true", "FAILED, false"})
+  void should_ReturnExpectedResult_When_GetObjectByStatus(String status, boolean expectedSuccess)
+      throws SQLException {
+    givenVolumeOperationResult(status);
 
-    boolean result = client.getObject("catalog", "schema", "volume", "file.txt", "/tmp/file.txt");
+    boolean result =
+        client.getObject(TEST_CATALOG, TEST_SCHEMA, VOLUME, "file.txt", "/tmp/file.txt");
 
-    assertTrue(result);
-    verify(mockStatement).executeQuery(argThat(query -> query.contains("GET")));
-  }
-
-  @Test
-  void should_ReturnFalse_When_GetObjectFails() throws SQLException {
-    when(mockStatement.executeQuery(anyString())).thenReturn(mockResultSet);
-    when(mockResultSet.next()).thenReturn(true);
-    when(mockResultSet.getString(VOLUME_OPERATION_STATUS_COLUMN_NAME)).thenReturn("FAILED");
-
-    boolean result = client.getObject("catalog", "schema", "volume", "file.txt", "/tmp/file.txt");
-
-    assertFalse(result);
+    assertEquals(expectedSuccess, result);
+    if (expectedSuccess) {
+      verify(mockStatement).executeQuery(argThat(query -> query.contains("GET")));
+    }
   }
 
   @Test
@@ -234,7 +237,7 @@ class DatabricksUCVolumeClientTest {
     SQLException ex =
         assertThrows(
             SQLException.class,
-            () -> client.getObject("catalog", "schema", "volume", "file.txt", "/tmp/file.txt"));
+            () -> client.getObject(TEST_CATALOG, TEST_SCHEMA, VOLUME, "file.txt", "/tmp/file.txt"));
     assertTrue(ex.getMessage().contains("GET failed"));
   }
 
@@ -249,7 +252,7 @@ class DatabricksUCVolumeClientTest {
         .thenReturn(mockDatabricksResultSet);
     when(mockDatabricksResultSet.getVolumeOperationInputStream()).thenReturn(mockEntity);
 
-    InputStreamEntity result = client.getObject("catalog", "schema", "volume", "file.txt");
+    InputStreamEntity result = client.getObject(TEST_CATALOG, TEST_SCHEMA, VOLUME, "file.txt");
 
     assertNotNull(result);
     assertSame(mockEntity, result);
@@ -263,20 +266,32 @@ class DatabricksUCVolumeClientTest {
     when(mockStatement.executeQuery(anyString())).thenReturn(mockResultSet);
     when(mockResultSet.next()).thenReturn(false);
 
-    InputStreamEntity result = client.getObject("catalog", "schema", "volume", "file.txt");
+    InputStreamEntity result = client.getObject(TEST_CATALOG, TEST_SCHEMA, VOLUME, "file.txt");
 
     assertNull(result);
   }
 
-  @Test
-  void should_ReturnTrue_When_PutObjectSucceeds() throws SQLException {
-    when(mockStatement.executeQuery(anyString())).thenReturn(mockResultSet);
-    when(mockResultSet.next()).thenReturn(true);
-    when(mockResultSet.getString(VOLUME_OPERATION_STATUS_COLUMN_NAME))
-        .thenReturn(VOLUME_OPERATION_STATUS_SUCCEEDED);
+  @ParameterizedTest
+  @CsvSource({"SUCCEEDED, true", "FAILED, false"})
+  void should_ReturnExpectedResult_When_PutObjectFileByStatus(
+      String status, boolean expectedSuccess) throws SQLException {
+    givenVolumeOperationResult(status);
 
     boolean result =
-        client.putObject("catalog", "schema", "volume", "file.txt", "/tmp/file.txt", true);
+        client.putObject(TEST_CATALOG, TEST_SCHEMA, VOLUME, "file.txt", "/tmp/file.txt", false);
+
+    assertEquals(expectedSuccess, result);
+    if (expectedSuccess) {
+      verify(mockStatement).executeQuery(argThat(query -> query.contains("PUT")));
+    }
+  }
+
+  @Test
+  void should_IncludeOverwrite_When_PutObjectWithOverwrite() throws SQLException {
+    givenVolumeOperationResult(VOLUME_OPERATION_STATUS_SUCCEEDED);
+
+    boolean result =
+        client.putObject(TEST_CATALOG, TEST_SCHEMA, VOLUME, "file.txt", "/tmp/file.txt", true);
 
     assertTrue(result);
     verify(mockStatement)
@@ -285,13 +300,10 @@ class DatabricksUCVolumeClientTest {
 
   @Test
   void should_NotIncludeOverwrite_When_PutObjectWithoutOverwrite() throws SQLException {
-    when(mockStatement.executeQuery(anyString())).thenReturn(mockResultSet);
-    when(mockResultSet.next()).thenReturn(true);
-    when(mockResultSet.getString(VOLUME_OPERATION_STATUS_COLUMN_NAME))
-        .thenReturn(VOLUME_OPERATION_STATUS_SUCCEEDED);
+    givenVolumeOperationResult(VOLUME_OPERATION_STATUS_SUCCEEDED);
 
     boolean result =
-        client.putObject("catalog", "schema", "volume", "file.txt", "/tmp/file.txt", false);
+        client.putObject(TEST_CATALOG, TEST_SCHEMA, VOLUME, "file.txt", "/tmp/file.txt", false);
 
     assertTrue(result);
     verify(mockStatement).executeQuery(argThat(query -> !query.contains("OVERWRITE")));
@@ -302,13 +314,10 @@ class DatabricksUCVolumeClientTest {
     InputStream inputStream = new ByteArrayInputStream("test data".getBytes());
     when(mockStatement.unwrap(IDatabricksStatementInternal.class))
         .thenReturn(mockDatabricksStatement);
-    when(mockStatement.executeQuery(anyString())).thenReturn(mockResultSet);
-    when(mockResultSet.next()).thenReturn(true);
-    when(mockResultSet.getString(VOLUME_OPERATION_STATUS_COLUMN_NAME))
-        .thenReturn(VOLUME_OPERATION_STATUS_SUCCEEDED);
+    givenVolumeOperationResult(VOLUME_OPERATION_STATUS_SUCCEEDED);
 
     boolean result =
-        client.putObject("catalog", "schema", "volume", "file.txt", inputStream, 100L, true);
+        client.putObject(TEST_CATALOG, TEST_SCHEMA, VOLUME, "file.txt", inputStream, 100L, true);
 
     assertTrue(result);
     verify(mockDatabricksStatement).allowInputStreamForVolumeOperation(true);
@@ -323,32 +332,23 @@ class DatabricksUCVolumeClientTest {
         assertThrows(
             SQLException.class,
             () ->
-                client.putObject("catalog", "schema", "volume", "file.txt", "/tmp/file.txt", true));
+                client.putObject(
+                    TEST_CATALOG, TEST_SCHEMA, VOLUME, "file.txt", "/tmp/file.txt", true));
     assertTrue(ex.getMessage().contains("PUT failed"));
   }
 
-  @Test
-  void should_ReturnTrue_When_DeleteObjectSucceeds() throws SQLException {
-    when(mockStatement.executeQuery(anyString())).thenReturn(mockResultSet);
-    when(mockResultSet.next()).thenReturn(true);
-    when(mockResultSet.getString(VOLUME_OPERATION_STATUS_COLUMN_NAME))
-        .thenReturn(VOLUME_OPERATION_STATUS_SUCCEEDED);
+  @ParameterizedTest
+  @CsvSource({"SUCCEEDED, true", "FAILED, false"})
+  void should_ReturnExpectedResult_When_DeleteObjectByStatus(String status, boolean expectedSuccess)
+      throws SQLException {
+    givenVolumeOperationResult(status);
 
-    boolean result = client.deleteObject("catalog", "schema", "volume", "file.txt");
+    boolean result = client.deleteObject(TEST_CATALOG, TEST_SCHEMA, VOLUME, "file.txt");
 
-    assertTrue(result);
-    verify(mockStatement).executeQuery(argThat(query -> query.contains("REMOVE")));
-  }
-
-  @Test
-  void should_ReturnFalse_When_DeleteObjectFails() throws SQLException {
-    when(mockStatement.executeQuery(anyString())).thenReturn(mockResultSet);
-    when(mockResultSet.next()).thenReturn(true);
-    when(mockResultSet.getString(VOLUME_OPERATION_STATUS_COLUMN_NAME)).thenReturn("FAILED");
-
-    boolean result = client.deleteObject("catalog", "schema", "volume", "file.txt");
-
-    assertFalse(result);
+    assertEquals(expectedSuccess, result);
+    if (expectedSuccess) {
+      verify(mockStatement).executeQuery(argThat(query -> query.contains("REMOVE")));
+    }
   }
 
   @Test
@@ -358,7 +358,7 @@ class DatabricksUCVolumeClientTest {
     SQLException ex =
         assertThrows(
             SQLException.class,
-            () -> client.deleteObject("catalog", "schema", "volume", "file.txt"));
+            () -> client.deleteObject(TEST_CATALOG, TEST_SCHEMA, VOLUME, "file.txt"));
     assertTrue(ex.getMessage().contains("REMOVE failed"));
   }
 
@@ -373,9 +373,9 @@ class DatabricksUCVolumeClientTest {
             DatabricksSQLFeatureNotSupportedException.class,
             () ->
                 client.putFiles(
-                    "catalog",
-                    "schema",
-                    "volume",
+                    TEST_CATALOG,
+                    TEST_SCHEMA,
+                    VOLUME,
                     objectPaths,
                     inputStreams,
                     contentLengths,
@@ -391,18 +391,19 @@ class DatabricksUCVolumeClientTest {
     DatabricksSQLFeatureNotSupportedException ex =
         assertThrows(
             DatabricksSQLFeatureNotSupportedException.class,
-            () -> client.putFiles("catalog", "schema", "volume", objectPaths, localPaths, true));
+            () ->
+                client.putFiles(TEST_CATALOG, TEST_SCHEMA, VOLUME, objectPaths, localPaths, true));
     assertTrue(ex.getMessage().contains("putFiles(...) is not supported"));
   }
 
   @Test
   void should_GenerateCorrectPath_When_GetObjectFullPath() {
     String result =
-        DatabricksUCVolumeClient.getObjectFullPath("catalog", "schema", "volume", "file.txt");
+        DatabricksUCVolumeClient.getObjectFullPath(TEST_CATALOG, TEST_SCHEMA, VOLUME, "file.txt");
 
-    assertTrue(result.contains("catalog"));
-    assertTrue(result.contains("schema"));
-    assertTrue(result.contains("volume"));
+    assertTrue(result.contains(TEST_CATALOG));
+    assertTrue(result.contains(TEST_SCHEMA));
+    assertTrue(result.contains(VOLUME));
     assertTrue(result.contains("file.txt"));
   }
 
@@ -412,7 +413,7 @@ class DatabricksUCVolumeClientTest {
     when(mockResultSet.next()).thenThrow(new SQLException("Unexpected error"));
 
     assertThrows(
-        SQLException.class, () -> client.listObjects("catalog", "schema", "volume", "test"));
+        SQLException.class, () -> client.listObjects(TEST_CATALOG, TEST_SCHEMA, VOLUME, "test"));
 
     verify(mockResultSet).close();
     verify(mockStatement).close();

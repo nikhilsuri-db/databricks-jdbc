@@ -59,20 +59,23 @@ class VolumeUploadCallbackTest {
     uploadRequest.file = testFile;
   }
 
+  private VolumeUploadCallback createCallback() {
+    return new VolumeUploadCallback(
+        mockHttpClient,
+        uploadFuture,
+        uploadRequest,
+        semaphore,
+        mockUrlGenerator,
+        mockRetryDelayCalculator,
+        mockConnectionContext);
+  }
+
   @ParameterizedTest
   @CsvSource({"200", "201", "204", "299"})
   void should_CompleteSuccessfully_When_HttpStatusIsSuccess(int statusCode) {
     when(mockResponse.getCode()).thenReturn(statusCode);
 
-    VolumeUploadCallback callback =
-        new VolumeUploadCallback(
-            mockHttpClient,
-            uploadFuture,
-            uploadRequest,
-            semaphore,
-            mockUrlGenerator,
-            mockRetryDelayCalculator,
-            mockConnectionContext);
+    VolumeUploadCallback callback = createCallback();
 
     callback.completed(mockResponse);
 
@@ -95,15 +98,7 @@ class VolumeUploadCallbackTest {
           .when(() -> VolumeRetryUtil.isRetryableHttpCode(eq(statusCode), any()))
           .thenReturn(false);
 
-      VolumeUploadCallback callback =
-          new VolumeUploadCallback(
-              mockHttpClient,
-              uploadFuture,
-              uploadRequest,
-              semaphore,
-              mockUrlGenerator,
-              mockRetryDelayCalculator,
-              mockConnectionContext);
+      VolumeUploadCallback callback = createCallback();
 
       callback.completed(mockResponse);
 
@@ -127,15 +122,7 @@ class VolumeUploadCallbackTest {
           .when(() -> VolumeRetryUtil.shouldRetry(anyInt(), anyLong(), any()))
           .thenReturn(false);
 
-      VolumeUploadCallback callback =
-          new VolumeUploadCallback(
-              mockHttpClient,
-              uploadFuture,
-              uploadRequest,
-              semaphore,
-              mockUrlGenerator,
-              mockRetryDelayCalculator,
-              mockConnectionContext);
+      VolumeUploadCallback callback = createCallback();
 
       callback.completed(mockResponse);
 
@@ -154,15 +141,7 @@ class VolumeUploadCallbackTest {
           .when(() -> VolumeRetryUtil.shouldRetry(anyInt(), anyLong(), any()))
           .thenReturn(false);
 
-      VolumeUploadCallback callback =
-          new VolumeUploadCallback(
-              mockHttpClient,
-              uploadFuture,
-              uploadRequest,
-              semaphore,
-              mockUrlGenerator,
-              mockRetryDelayCalculator,
-              mockConnectionContext);
+      VolumeUploadCallback callback = createCallback();
 
       callback.failed(exception);
 
@@ -176,15 +155,7 @@ class VolumeUploadCallbackTest {
 
   @Test
   void should_CompleteAsAborted_When_Cancelled() {
-    VolumeUploadCallback callback =
-        new VolumeUploadCallback(
-            mockHttpClient,
-            uploadFuture,
-            uploadRequest,
-            semaphore,
-            mockUrlGenerator,
-            mockRetryDelayCalculator,
-            mockConnectionContext);
+    VolumeUploadCallback callback = createCallback();
 
     callback.cancelled();
 
