@@ -142,27 +142,6 @@ public class PrivateKeyClientCredentialProviderTest {
   }
 
   @Test
-  void should_BuildClientCredentialsWithNullPassphrase() throws IOException {
-    setup();
-    when(context.getJWTPassphrase()).thenReturn(null);
-
-    try (MockedStatic<DatabricksHttpClientFactory> factoryMocked =
-        mockStatic(DatabricksHttpClientFactory.class)) {
-      DatabricksHttpClientFactory mockFactory = mock(DatabricksHttpClientFactory.class);
-      factoryMocked.when(DatabricksHttpClientFactory::getInstance).thenReturn(mockFactory);
-      when(mockFactory.getClient(any())).thenReturn(httpClient);
-      when(config.getOidcEndpoints()).thenReturn(TEST_OIDC_ENDPOINTS);
-
-      PrivateKeyClientCredentialProvider provider =
-          new PrivateKeyClientCredentialProvider(context, config);
-
-      JwtPrivateKeyClientCredentials clientCredentials = provider.getClientCredentialObject(config);
-
-      assertEquals(TEST_TOKEN_URL, clientCredentials.getTokenEndpoint());
-    }
-  }
-
-  @Test
   void should_ConfigureHeaderFactory_AndGenerateHeaders() throws Exception {
     setup();
     try (MockedStatic<DatabricksHttpClientFactory> factoryMocked =

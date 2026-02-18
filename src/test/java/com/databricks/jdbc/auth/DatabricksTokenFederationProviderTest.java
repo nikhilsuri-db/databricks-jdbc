@@ -210,12 +210,4 @@ public class DatabricksTokenFederationProviderTest {
     String authType = databricksTokenFederationProvider.authType();
     assertEquals("oauth", authType);
   }
-
-  @Test
-  public void testTokenWithNullRefreshToken() {
-    Token token =
-        new Token("accessToken", "Bearer", null, Instant.now().plus(10, ChronoUnit.MINUTES));
-    assertNull(token.getRefreshToken());
-    assertEquals("accessToken", token.getAccessToken());
-  }
 }

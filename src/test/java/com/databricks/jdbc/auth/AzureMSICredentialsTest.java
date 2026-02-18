@@ -1,5 +1,6 @@
 package com.databricks.jdbc.auth;
 
+import static com.databricks.jdbc.TestConstants.TEST_ACCESS_TOKEN;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -31,8 +32,7 @@ public class AzureMSICredentialsTest {
   @Mock private CloseableHttpResponse mockHttpResponse;
   @Mock private HttpEntity mockEntity;
 
-  private static final String TEST_CLIENT_ID = "test-client-id-123";
-  private static final String TEST_ACCESS_TOKEN = "test-access-token";
+  private static final String AZURE_TEST_CLIENT_ID = "test-client-id-123";
   private static final String AZURE_DATABRICKS_SCOPE = "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d";
   private static final String AZURE_MANAGEMENT_ENDPOINT = "https://management.core.windows.net/";
   private static final String METADATA_SERVICE_URL =
@@ -43,13 +43,16 @@ public class AzureMSICredentialsTest {
     reset(mockHttpClient, mockHttpResponse, mockEntity);
   }
 
-  @Test
-  void should_GetToken_When_SystemAssignedIdentity() throws Exception {
-    // Setup mock response
+  private void givenSuccessfulTokenResponse(String accessToken) throws Exception {
     when(mockHttpClient.execute(any(HttpGet.class))).thenReturn(mockHttpResponse);
     when(mockHttpResponse.getEntity()).thenReturn(mockEntity);
     when(mockEntity.getContent())
-        .thenReturn(new ByteArrayInputStream(createJsonResponse(TEST_ACCESS_TOKEN).getBytes()));
+        .thenReturn(new ByteArrayInputStream(createJsonResponse(accessToken).getBytes()));
+  }
+
+  @Test
+  void should_GetToken_When_SystemAssignedIdentity() throws Exception {
+    givenSuccessfulTokenResponse(TEST_ACCESS_TOKEN);
 
     // Create credentials without client ID (system-assigned)
     AzureMSICredentials credentials = new AzureMSICredentials(mockHttpClient, null);
@@ -79,14 +82,9 @@ public class AzureMSICredentialsTest {
 
   @Test
   void should_GetToken_When_UserAssignedIdentity() throws Exception {
-    // Setup mock response
-    when(mockHttpClient.execute(any(HttpGet.class))).thenReturn(mockHttpResponse);
-    when(mockHttpResponse.getEntity()).thenReturn(mockEntity);
-    when(mockEntity.getContent())
-        .thenReturn(new ByteArrayInputStream(createJsonResponse(TEST_ACCESS_TOKEN).getBytes()));
-
+    givenSuccessfulTokenResponse(TEST_ACCESS_TOKEN);
     // Create credentials with client ID (user-assigned)
-    AzureMSICredentials credentials = new AzureMSICredentials(mockHttpClient, TEST_CLIENT_ID);
+    AzureMSICredentials credentials = new AzureMSICredentials(mockHttpClient, AZURE_TEST_CLIENT_ID);
 
     // Get token
     Token token = credentials.getToken();
@@ -102,17 +100,12 @@ public class AzureMSICredentialsTest {
     HttpGet request = requestCaptor.getValue();
     String uri = request.getURI().toString();
 
-    assertTrue(uri.contains("client_id=" + TEST_CLIENT_ID));
+    assertTrue(uri.contains("client_id=" + AZURE_TEST_CLIENT_ID));
   }
 
   @Test
   void should_GetManagementEndpointToken_Successfully() throws Exception {
-    // Setup mock response
-    when(mockHttpClient.execute(any(HttpGet.class))).thenReturn(mockHttpResponse);
-    when(mockHttpResponse.getEntity()).thenReturn(mockEntity);
-    when(mockEntity.getContent())
-        .thenReturn(new ByteArrayInputStream(createJsonResponse(TEST_ACCESS_TOKEN).getBytes()));
-
+    givenSuccessfulTokenResponse(TEST_ACCESS_TOKEN);
     AzureMSICredentials credentials = new AzureMSICredentials(mockHttpClient, null);
 
     // Get management endpoint token
@@ -141,12 +134,7 @@ public class AzureMSICredentialsTest {
 
   @Test
   void should_CacheToken_When_MultipleCallsMade() throws Exception {
-    // Setup mock response
-    when(mockHttpClient.execute(any(HttpGet.class))).thenReturn(mockHttpResponse);
-    when(mockHttpResponse.getEntity()).thenReturn(mockEntity);
-    when(mockEntity.getContent())
-        .thenReturn(new ByteArrayInputStream(createJsonResponse(TEST_ACCESS_TOKEN).getBytes()));
-
+    givenSuccessfulTokenResponse(TEST_ACCESS_TOKEN);
     AzureMSICredentials credentials = new AzureMSICredentials(mockHttpClient, null);
 
     // Get token multiple times
@@ -244,13 +232,7 @@ public class AzureMSICredentialsTest {
   @CsvSource({"null", "''", "'test-client-id'"})
   void should_HandleVariousClientIdValues(String clientIdInput) throws Exception {
     String clientId = "null".equals(clientIdInput) ? null : clientIdInput.replace("'", "");
-
-    // Setup mock response
-    when(mockHttpClient.execute(any(HttpGet.class))).thenReturn(mockHttpResponse);
-    when(mockHttpResponse.getEntity()).thenReturn(mockEntity);
-    when(mockEntity.getContent())
-        .thenReturn(new ByteArrayInputStream(createJsonResponse(TEST_ACCESS_TOKEN).getBytes()));
-
+    givenSuccessfulTokenResponse(TEST_ACCESS_TOKEN);
     AzureMSICredentials credentials = new AzureMSICredentials(mockHttpClient, clientId);
 
     // Get token
@@ -288,7 +270,6 @@ public class AzureMSICredentialsTest {
             + refreshToken
             + "\""
             + "}";
-
     when(mockHttpClient.execute(any(HttpGet.class))).thenReturn(mockHttpResponse);
     when(mockHttpResponse.getEntity()).thenReturn(mockEntity);
     when(mockEntity.getContent()).thenReturn(new ByteArrayInputStream(jsonWithRefresh.getBytes()));
@@ -314,7 +295,6 @@ public class AzureMSICredentialsTest {
             + ","
             + "\"token_type\": \"Bearer\""
             + "}";
-
     when(mockHttpClient.execute(any(HttpGet.class))).thenReturn(mockHttpResponse);
     when(mockHttpResponse.getEntity()).thenReturn(mockEntity);
     when(mockEntity.getContent()).thenReturn(new ByteArrayInputStream(jsonResponse.getBytes()));

@@ -11,6 +11,8 @@ import java.time.temporal.ChronoUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 public class EncryptedFileTokenCacheTest {
 
@@ -268,23 +270,18 @@ public class EncryptedFileTokenCacheTest {
     }
   }
 
-  @Test
-  void should_HandleDifferentTokenTypes() throws DatabricksException {
+  @ParameterizedTest
+  @ValueSource(strings = {"Bearer", "Basic", "Custom"})
+  void should_HandleDifferentTokenTypes(String tokenType) throws DatabricksException {
     EncryptedFileTokenCache tokenCache =
         new EncryptedFileTokenCache(tokenCachePath, TEST_PASSPHRASE);
 
-    // Test with different token types
-    String[] tokenTypes = {"Bearer", "Basic", "Custom"};
+    Token token =
+        new Token(ACCESS_TOKEN, tokenType, REFRESH_TOKEN, Instant.now().plus(1, ChronoUnit.HOURS));
+    tokenCache.save(token);
 
-    for (String tokenType : tokenTypes) {
-      Token token =
-          new Token(
-              ACCESS_TOKEN, tokenType, REFRESH_TOKEN, Instant.now().plus(1, ChronoUnit.HOURS));
-      tokenCache.save(token);
-
-      Token loadedToken = tokenCache.load();
-      assertNotNull(loadedToken);
-      assertEquals(tokenType, loadedToken.getTokenType());
-    }
+    Token loadedToken = tokenCache.load();
+    assertNotNull(loadedToken);
+    assertEquals(tokenType, loadedToken.getTokenType());
   }
 }
