@@ -17,8 +17,9 @@ import com.databricks.jdbc.model.core.ExternalLink;
 import com.databricks.jdbc.model.core.ResultData;
 import com.databricks.jdbc.model.core.ResultManifest;
 import com.databricks.jdbc.model.telemetry.enums.DatabricksDriverErrorCode;
-import com.databricks.jdbc.telemetry.latency.TelemetryCollector;
+import com.databricks.jdbc.telemetry.TelemetryHelper;
 import com.databricks.sdk.service.sql.BaseChunkInfo;
+import java.sql.SQLException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
@@ -83,7 +84,7 @@ public abstract class AbstractRemoteChunkProvider<T extends AbstractArrowResultC
             chunkCount,
             chunkIndexToChunksMap,
             resultData.getExternalLinks() != null ? resultData.getExternalLinks().size() : 1);
-    TelemetryCollector.getInstance().recordTotalChunks(statementId, chunkCount);
+    TelemetryHelper.recordTotalChunks(session.getConnectionContext(), statementId, chunkCount);
     initializeData();
   }
 
@@ -94,7 +95,7 @@ public abstract class AbstractRemoteChunkProvider<T extends AbstractArrowResultC
       IDatabricksHttpClient httpClient,
       int maxParallelChunkDownloadsPerQuery,
       CompressionCodec compressionCodec)
-      throws DatabricksSQLException {
+      throws SQLException {
     this.chunkReadyTimeoutSeconds = session.getConnectionContext().getChunkReadyTimeoutSeconds();
     this.maxParallelChunkDownloadsPerQuery = maxParallelChunkDownloadsPerQuery;
     this.session = session;
@@ -264,14 +265,14 @@ public abstract class AbstractRemoteChunkProvider<T extends AbstractArrowResultC
       TFetchResultsResp resultsResp,
       IDatabricksStatementInternal parentStatement,
       IDatabricksSession session)
-      throws DatabricksSQLException {
+      throws SQLException {
     ConcurrentMap<Long, T> chunkIndexMap = new ConcurrentHashMap<>();
     populateChunkIndexMap(resultsResp.getResults(), chunkIndexMap);
     while (resultsResp.hasMoreRows) {
       resultsResp = session.getDatabricksClient().getMoreResults(parentStatement);
       populateChunkIndexMap(resultsResp.getResults(), chunkIndexMap);
     }
-    TelemetryCollector.getInstance().recordTotalChunks(statementId, chunkCount);
+    TelemetryHelper.recordTotalChunks(session.getConnectionContext(), statementId, chunkCount);
     return chunkIndexMap;
   }
 
