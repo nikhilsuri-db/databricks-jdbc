@@ -49,7 +49,7 @@ class VolumeUploadCallbackTest {
 
   @BeforeEach
   void setup() throws IOException {
-    when(mockConnectionContext.getTelemetryLogLevel()).thenReturn(TelemetryLogLevel.OFF);
+    lenient().when(mockConnectionContext.getTelemetryLogLevel()).thenReturn(TelemetryLogLevel.OFF);
 
     uploadFuture = new CompletableFuture<>();
     semaphore = new Semaphore(1);

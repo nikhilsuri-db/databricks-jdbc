@@ -4,12 +4,15 @@ import static com.databricks.jdbc.common.DatabricksJdbcConstants.ALLOWED_VOLUME_
 import static com.databricks.jdbc.common.DatabricksJdbcConstants.ENABLE_VOLUME_OPERATIONS;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import com.databricks.jdbc.api.impl.DatabricksSession;
 import com.databricks.jdbc.api.impl.IExecutionResult;
 import com.databricks.jdbc.api.internal.IDatabricksConnectionContext;
 import com.databricks.jdbc.api.internal.IDatabricksStatementInternal;
+import com.databricks.jdbc.common.TelemetryLogLevel;
 import com.databricks.jdbc.common.util.VolumeUtil;
 import com.databricks.jdbc.dbclient.IDatabricksHttpClient;
 import com.databricks.jdbc.exception.DatabricksHttpException;
@@ -156,10 +159,9 @@ public class VolumeOperationResultTest {
     when(resultHandler.getObject(0)).thenReturn("GET");
     when(resultHandler.getObject(1)).thenReturn(PRESIGNED_URL);
     when(resultHandler.getObject(3)).thenReturn("__input_stream__");
-    when(statement.isAllowedInputStreamForVolumeOperation())
-        .thenThrow(
-            new DatabricksSQLException(
-                "statement closed", DatabricksDriverErrorCode.INVALID_STATE));
+    doThrow(new DatabricksSQLException("statement closed", DatabricksDriverErrorCode.INVALID_STATE))
+        .when(statement)
+        .isAllowedInputStreamForVolumeOperation();
 
     try {
       new VolumeOperationResult(RESULT_MANIFEST, session, resultHandler, mockHttpClient, statement);
@@ -395,10 +397,9 @@ public class VolumeOperationResultTest {
     when(resultHandler.getObject(1)).thenReturn(PRESIGNED_URL);
     when(resultHandler.getObject(3)).thenReturn("__input_stream__");
     when(statement.isAllowedInputStreamForVolumeOperation()).thenReturn(true);
-    when(statement.getInputStreamForUCVolume())
-        .thenThrow(
-            new DatabricksSQLException(
-                "statement closed", DatabricksDriverErrorCode.INVALID_STATE));
+    doThrow(new DatabricksSQLException("statement closed", DatabricksDriverErrorCode.INVALID_STATE))
+        .when(statement)
+        .getInputStreamForUCVolume();
 
     try {
       new VolumeOperationResult(RESULT_MANIFEST, session, resultHandler, mockHttpClient, statement);
@@ -602,9 +603,9 @@ public class VolumeOperationResultTest {
     buildClientInfoProperties(Map.of(ENABLE_VOLUME_OPERATIONS.toLowerCase(), "1"));
     when(resultHandler.getObject(1)).thenReturn(PRESIGNED_URL);
     when(resultHandler.getObject(3)).thenReturn(null);
-    when(mockHttpClient.execute(isA(HttpDelete.class)))
-        .thenThrow(
-            new DatabricksHttpException("exception", DatabricksDriverErrorCode.INVALID_STATE));
+    doThrow(new DatabricksHttpException("exception", DatabricksDriverErrorCode.INVALID_STATE))
+        .when(mockHttpClient)
+        .execute(isA(HttpDelete.class));
 
     try {
       new VolumeOperationResult(RESULT_MANIFEST, session, resultHandler, mockHttpClient, statement);
@@ -693,6 +694,8 @@ public class VolumeOperationResultTest {
         .thenReturn(false);
     when(resultHandler.next()).thenReturn(true).thenReturn(false);
     when(resultHandler.getObject(2)).thenReturn(HEADERS);
+    lenient().when(session.getConnectionContext()).thenReturn(context);
+    lenient().when(context.getTelemetryLogLevel()).thenReturn(TelemetryLogLevel.OFF);
     buildClientInfoProperties(Collections.emptyMap());
   }
 
