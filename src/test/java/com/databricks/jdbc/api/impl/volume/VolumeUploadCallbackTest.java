@@ -10,6 +10,7 @@ import static org.mockito.Mockito.*;
 import com.databricks.jdbc.api.impl.VolumeOperationStatus;
 import com.databricks.jdbc.api.impl.volume.DBFSVolumeClient.UploadRequest;
 import com.databricks.jdbc.api.internal.IDatabricksConnectionContext;
+import com.databricks.jdbc.common.TelemetryLogLevel;
 import com.databricks.jdbc.common.util.VolumeRetryUtil;
 import com.databricks.jdbc.dbclient.IDatabricksHttpClient;
 import com.databricks.jdbc.model.client.filesystem.VolumePutResult;
@@ -48,6 +49,8 @@ class VolumeUploadCallbackTest {
 
   @BeforeEach
   void setup() throws IOException {
+    when(mockConnectionContext.getTelemetryLogLevel()).thenReturn(TelemetryLogLevel.OFF);
+
     uploadFuture = new CompletableFuture<>();
     semaphore = new Semaphore(1);
 

@@ -5,8 +5,10 @@ import static org.mockito.Mockito.*;
 
 import com.databricks.jdbc.api.IDatabricksVolumeClient;
 import com.databricks.jdbc.api.internal.IDatabricksConnectionContext;
+import com.databricks.jdbc.common.TelemetryLogLevel;
 import com.databricks.jdbc.exception.DatabricksHttpException;
 import java.sql.Connection;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -17,6 +19,11 @@ class DatabricksVolumeClientFactoryTest {
 
   @Mock private Connection mockConnection;
   @Mock private IDatabricksConnectionContext mockConnectionContext;
+
+  @BeforeEach
+  void setUp() {
+    when(mockConnectionContext.getTelemetryLogLevel()).thenReturn(TelemetryLogLevel.OFF);
+  }
 
   @Test
   void should_CreateUCVolumeClient_When_PassedConnection() {
