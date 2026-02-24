@@ -170,10 +170,11 @@ public class AzureMSICredentialProviderTest {
     AzureMSICredentialProvider provider = setupProvider();
 
     // Make the HTTP client throw an exception
-    when(mockHttpClient.execute(any(HttpGet.class)))
-        .thenThrow(
+    doThrow(
             new DatabricksHttpException(
-                "Connection failed", DatabricksDriverErrorCode.INVALID_STATE));
+                "Connection failed", DatabricksDriverErrorCode.INVALID_STATE))
+        .when(mockHttpClient)
+        .execute(any(HttpGet.class));
     HeaderFactory headerFactory = provider.configure(config);
     Exception exception = assertThrows(DatabricksException.class, headerFactory::headers);
 
