@@ -16,10 +16,14 @@ public class DatabricksVolumeClientFactory {
   /**
    * Creates an instance of the DatabricksUCVolumeClient from the given connection.
    *
-   * @param con Connection
+   * @param con Connection (must not be null)
    * @return an instance of {@link IDatabricksVolumeClient}
+   * @throws IllegalArgumentException if con is null
    */
   public static IDatabricksVolumeClient getVolumeClient(Connection con) {
+    if (con == null) {
+      throw new IllegalArgumentException("Connection must not be null");
+    }
     LOGGER.debug(
         String.format(
             "Entering public static IDatabricksVolumeClient getVolumeClient with Connection con = {%s}",

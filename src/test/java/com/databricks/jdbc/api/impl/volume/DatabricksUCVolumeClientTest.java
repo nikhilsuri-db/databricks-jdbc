@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -446,15 +447,23 @@ class DatabricksUCVolumeClientTest {
 
   @Test
   void should_EscapeStringLiterals_When_BuildingQueries() throws SQLException {
-    // Arrange - Test SQL injection prevention
+    // Arrange - Test SQL injection prevention: single quote in literal must become ''
     String maliciousVolume = "test'; DROP TABLE users--";
     when(mockResultSet.next()).thenReturn(false);
 
     // Act
     client.listObjects(TEST_CATALOG, TEST_SCHEMA, maliciousVolume, "test", true);
 
-    // Assert - Verify the query contains escaped strings
-    verify(mockStatement).executeQuery(anyString());
+    // Assert - Verify the query contains the escaped literal ('' not ') so injection is prevented
+    ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
+    verify(mockStatement).executeQuery(queryCaptor.capture());
+    String executedQuery = queryCaptor.getValue();
+    assertTrue(
+        executedQuery.contains("test''"),
+        "Query should contain escaped single quote (''): " + executedQuery);
+    assertFalse(
+        executedQuery.contains("test';"),
+        "Query must not contain unescaped quote that could allow SQL injection: " + executedQuery);
   }
 
   @Test

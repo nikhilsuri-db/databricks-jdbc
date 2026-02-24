@@ -37,13 +37,10 @@ class DatabricksVolumeClientFactoryTest {
   }
 
   @Test
-  void should_AcceptNullConnection_When_CreatingUCVolumeClient() {
-    // Act - The factory doesn't validate null, it's passed to the constructor
-    IDatabricksVolumeClient client =
-        DatabricksVolumeClientFactory.getVolumeClient((Connection) null);
-
-    // Assert - Client is created, though it may fail later when used
-    assertNotNull(client);
-    assertTrue(client instanceof DatabricksUCVolumeClient);
+  void should_ThrowException_When_ConnectionIsNull() {
+    // Act & Assert - Null connection is invalid; factory must reject it
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> DatabricksVolumeClientFactory.getVolumeClient((Connection) null));
   }
 }
