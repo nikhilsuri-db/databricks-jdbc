@@ -810,6 +810,12 @@ public class DatabricksConnectionContext implements IDatabricksConnectionContext
     }
   }
 
+  /** {@inheritDoc} */
+  @Override
+  public int getOAuthWebServerTimeout() {
+    return Integer.parseInt(getParameter(DatabricksJdbcUrlParams.OAUTH_WEB_SERVER_TIMEOUT));
+  }
+
   @Override
   public Boolean getUseEmptyMetadata() {
     String param = getParameter(DatabricksJdbcUrlParams.USE_EMPTY_METADATA);
@@ -1090,6 +1096,16 @@ public class DatabricksConnectionContext implements IDatabricksConnectionContext
   @Override
   public boolean enableShowCommandsForGetFunctions() {
     return getParameter(DatabricksJdbcUrlParams.ENABLE_SHOW_COMMAND_FOR_GET_FUNCTIONS).equals("1");
+  }
+
+  @Override
+  public boolean useQueryForMetadata() {
+    return getParameter(DatabricksJdbcUrlParams.USE_QUERY_FOR_METADATA).equals("1");
+  }
+
+  @Override
+  public boolean treatMetadataCatalogNameAsPattern() {
+    return getParameter(DatabricksJdbcUrlParams.TREAT_METADATA_CATALOG_NAME_AS_PATTERN).equals("1");
   }
 
   @Override
