@@ -308,10 +308,7 @@ public interface IDatabricksConnectionContext {
   /** Returns true if driver return complex data type java objects natively as opposed to string */
   boolean isComplexDatatypeSupportEnabled();
 
-  /**
-   * Returns true if driver returns GEOMETRY and GEOGRAPHY types natively. Requires
-   * isComplexDatatypeSupportEnabled() to be true
-   */
+  /** Returns true if driver returns GEOMETRY and GEOGRAPHY types natively. */
   boolean isGeoSpatialSupportEnabled();
 
   /** Returns the size for HTTP connection pool */
@@ -408,6 +405,16 @@ public interface IDatabricksConnectionContext {
 
   /** Returns the timeout in seconds for metadata polling operations. 0 means no timeout. */
   int getMetadataOperationTimeout();
+
+  /** Returns whether heartbeat/keep-alive polling is enabled. */
+  default boolean isHeartbeatEnabled() {
+    return false;
+  }
+
+  /** Returns the heartbeat polling interval in seconds. */
+  default int getHeartbeatIntervalSeconds() {
+    return 60;
+  }
 
   /** Returns whether batched INSERT optimization is enabled */
   boolean isBatchedInsertsEnabled();

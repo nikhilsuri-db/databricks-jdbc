@@ -199,7 +199,14 @@ public class DatabricksResultSetMetaDataTest {
       {"col_struct", "struct<col_int:int,col_string:string>", "STRUCT", Types.STRUCT, 255, 0},
       {"col_array", "array<int>", "ARRAY", Types.ARRAY, 255, 0},
       {"col_map", "map<string,string>", "MAP", Types.VARCHAR, 255, 0},
-      {"col_variant", "variant", "VARIANT", Types.VARCHAR, 255, 0},
+      {"col_variant", "variant", "VARIANT", Types.OTHER, 255, 0},
+      {"col_geography", "geography", "GEOGRAPHY", Types.OTHER, 255, 0},
+      {"col_geometry", "geometry", "GEOMETRY", Types.OTHER, 255, 0},
+      {"col_bigint", "bigint", "BIGINT", Types.BIGINT, 19, 0},
+      {"col_smallint", "smallint", "SMALLINT", Types.SMALLINT, 5, 0},
+      {"col_tinyint", "tinyint", "TINYINT", Types.TINYINT, 3, 0},
+      {"col_varchar", "varchar", "VARCHAR", Types.VARCHAR, 255, 0},
+      {"col_integer", "integer", "INTEGER", Types.INTEGER, 10, 0},
       {"col_interval", "interval", "INTERVAL", Types.VARCHAR, 255, 0},
       {"col_interval_second", "interval second", "INTERVAL SECOND", Types.VARCHAR, 255, 0},
       {"col_interval_minute", "interval minute", "INTERVAL MINUTE", Types.VARCHAR, 255, 0},
@@ -765,9 +772,9 @@ public class DatabricksResultSetMetaDataTest {
 
   @Test
   public void testJsonArrayWithComplexTypesEnabledButGeospatialDisabled() throws SQLException {
-    // This test validates the important scenario where EnableComplexDatatypeSupport=1
-    // but EnableGeoSpatialSupport=0 (disabled). This simulates real-world usage where
-    // users want complex types (ARRAY, MAP, STRUCT) but want geospatial data as strings.
+    // This test validates that with EnableGeoSpatialSupport=0, geospatial columns
+    // report as STRING in metadata regardless of the EnableComplexDatatypeSupport setting.
+    // The two flags are independent.
     //
     // Expected behavior:
     // - GEOMETRY/GEOGRAPHY column types should report as STRING in metadata
